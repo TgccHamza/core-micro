@@ -1,0 +1,25 @@
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from fastapi import Depends
+from sqlalchemy.orm import scoped_session
+
+# Database URL (replace with your own database credentials)
+DATABASE_URL = "mysql+pymysql://user:password@db/db_name"
+
+# Create the SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
+
+# Create a configured "Session" class
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create a base class for declarative models
+Base = declarative_base()
+
+# Dependency to get a database session
+def get_db() -> Session:
+    db: Session = SessionLocal()  # Create a new session
+    try:
+        yield db  # Yield the session to the request
+    finally:
+        db.close()  # Close the session when done

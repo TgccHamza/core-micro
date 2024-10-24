@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app  # Bind mount for local development
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+    networks:
+      - shared
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_name
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - shared
+
+volumes:
+  db_data:
+
+networks:
+  shared:
+    name: shared_api_network
+    external: true
