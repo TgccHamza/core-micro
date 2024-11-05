@@ -11,7 +11,7 @@ DATABASE_URL = "mysql+pymysql://user:password@db/db_name"
 engine = create_engine(DATABASE_URL)
 
 # Create a configured "Session" class
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(bind=engine)
 
 # Create a base class for declarative models
 Base = declarative_base()

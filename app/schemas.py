@@ -1,44 +1,127 @@
 from pydantic import BaseModel, Field, constr
 from typing import List, Optional
 from uuid import UUID
+from .enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
+from datetime import datetime
+from enum import Enum
 
-class ProjectBase(BaseModel):
-    name: str = Field(..., max_length=255)
-    slug: str = Field(..., max_length=255)
-    domain: Optional[str] = Field(..., max_length=255)
-    visibility: Optional[str] = Field(default='public', pattern=r'^(public|private|unlisted)$')
-    client_id: Optional[UUID]   # UUID for client_id
-    client_name: Optional[str] = Field(..., max_length=255)  # Name of the client
-
-class ProjectCreate(ProjectBase):
-    pass
-
-class ProjectUpdate(ProjectBase):
-    pass
-
-class Project(ProjectBase):
-    id: UUID  # Use UUID instead of int
-    modules: List["ProjectModule"] = []  # Updated to use ProjectModule
-
-    class Config:
-        orm_mode = True
-
-class ProjectModuleBase(BaseModel):  # Updated from ProjectPartBase to ProjectModuleBase
-    name: str = Field(..., max_length=255)
-    type: str = Field(..., max_length=50)  # E.g., game, leaderboard, monitor
+# Pydantic Models for Project
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
     db_index: Optional[str] = None
+    slug: str
+    visibility: Optional[str] = "public"
+    activation_status: Optional[ActivationStatus] = ActivationStatus.ACTIVE
+    client_id: Optional[str] = Field(default_factory=lambda: str(uuid4()))
+    client_name: Optional[str] = None
 
-class ProjectModuleCreate(ProjectModuleBase):  # Updated from ProjectPartCreate
-    project_id: UUID  # Ensure the project_id is UUID
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    db_index: Optional[str] = None
+    slug: Optional[str] = None
+    visibility: Optional[str] = "public"
+    activation_status: Optional[ActivationStatus] = ActivationStatus.ACTIVE
+    client_name: Optional[str] = None
 
-class ProjectModuleUpdate(ProjectModuleBase):  # Updated from ProjectPartUpdate
-    pass
+class ProjectResponse(ProjectCreate):
+    id: str
 
-class ProjectModule(ProjectModuleBase):  # Updated from ProjectPart
-    id: UUID  # Use UUID instead of int
-    project: Project  # Reference to the parent Project
+# Pydantic Models for ProjectModule
+class ModuleCreate(BaseModel):
+    name: str
+    type: str
+    project_id: str
+    order: Optional[int] = 0
+
+class ModuleUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    order: Optional[int] = 0
+
+class ModuleResponse(ModuleCreate):
+    id: str
+
+
+
+
+
+# ---------------- Group Schemas ----------------
+
+class GroupBase(BaseModel):
+    name: str
+
+class GroupCreate(GroupBase):
+    user_ids: List[UUID]
+    project_ids: List[UUID]
+
+class Group(GroupBase):
+    id: UUID
 
     class Config:
         orm_mode = True
 
-# Update forward reference for List of ProjectM
+class GroupUpdate(BaseModel):
+    name: Optional[str] = None
+    user_ids: Optional[List[UUID]] = None
+    project_ids: Optional[List[UUID]] = None
+
+# ---------------- Arena Schemas ----------------
+
+# Base schema for Arena
+class ArenaBase(BaseModel):
+    name: str
+
+# Arena creation schema, allowing association with only one group upon creation
+class ArenaCreate(ArenaBase):
+    group_id: UUID  # Only one group is allowed on creation
+
+# Schema for returning Arena information with associated groups
+class Arena(ArenaBase):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+# Arena update schema without group association updates
+class ArenaUpdate(BaseModel):
+    name: Optional[str] = None
+
+# Schema for associating an arena with additional groups
+class ArenaAssociate(BaseModel):
+    group_id: UUID
+
+# Schema for dissociating an arena from a specific group
+class ArenaDisassociation(BaseModel):
+    group_id: UUID
+
+# ---------------- Session Schemas ----------------
+
+class SessionBase(BaseModel):
+    arena_id: UUID
+    period_type: str  # You can change this to an Enum if needed
+    start_time: datetime
+    end_time: Optional[datetime]
+    access_status: str  # You can change this to an Enum if needed
+    session_status: str  # You can change this to an Enum if needed
+    view_access: str  # You can change this to an Enum if needed
+
+class SessionCreate(SessionBase):
+    user_ids: List[UUID]
+
+class Session(SessionBase):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+class SessionUpdate(BaseModel):
+    arena_id: Optional[UUID] = None
+    period_type: Optional[str] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    access_status: Optional[str] = None
+    session_status: Optional[str] = None
+    view_access: Optional[str] = None
+    user_ids: Optional[List[UUID]] = None
