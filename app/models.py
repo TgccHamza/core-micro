@@ -32,6 +32,9 @@ class ProjectModule(Base):
     type = Column(String(50))  # E.g., game, leaderboard, monitor
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
 
+    # New template_code field
+    template_code = Column(String(255), nullable=True)
+
     # New fields
     order = Column(Integer, nullable=False, default=0)  # Module order within the project
 

@@ -81,3 +81,22 @@ def delete_module(db: Session, module_id: str):
     db.delete(db_module)
     db.commit()
     return {"message": "Module deleted successfully"}
+
+
+def set_template_module(db: Session, module_id: str, template_code: str):
+    """Set the template for a specific module."""
+    # Retrieve the module
+    module = db.query(models.ProjectModule).filter(models.ProjectModule.id == module_id).first()
+
+    # Check if the module exists
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+
+    # Set the template code
+    module.template_code = template_code
+
+    # Commit the changes
+    db.commit()
+    db.refresh(module)
+
+    return {"message": "Template set successfully", "module_id": module_id, "template_code": template_code}
