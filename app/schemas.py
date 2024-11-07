@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from .enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
 from datetime import datetime
-from enum import Enum
+
 
 # Pydantic Models for Project
 class ProjectCreate(BaseModel):
@@ -13,8 +13,9 @@ class ProjectCreate(BaseModel):
     slug: str
     visibility: Optional[str] = "public"
     activation_status: Optional[ActivationStatus] = ActivationStatus.ACTIVE
-    client_id: Optional[str] = Field(default_factory=lambda: str(uuid4()))
+    client_id: Optional[str] = None
     client_name: Optional[str] = None
+
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -25,8 +26,10 @@ class ProjectUpdate(BaseModel):
     activation_status: Optional[ActivationStatus] = ActivationStatus.ACTIVE
     client_name: Optional[str] = None
 
+
 class ProjectResponse(ProjectCreate):
     id: str
+
 
 # Pydantic Models for ProjectModule
 class ModuleCreate(BaseModel):
@@ -35,16 +38,15 @@ class ModuleCreate(BaseModel):
     project_id: str
     order: Optional[int] = 0
 
+
 class ModuleUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[str] = None
     order: Optional[int] = 0
 
+
 class ModuleResponse(ModuleCreate):
     id: str
-
-
-
 
 
 # ---------------- Group Schemas ----------------
@@ -52,9 +54,11 @@ class ModuleResponse(ModuleCreate):
 class GroupBase(BaseModel):
     name: str
 
+
 class GroupCreate(GroupBase):
     user_ids: List[UUID]
     project_ids: List[UUID]
+
 
 class Group(GroupBase):
     id: UUID
@@ -62,10 +66,12 @@ class Group(GroupBase):
     class Config:
         orm_mode = True
 
+
 class GroupUpdate(BaseModel):
     name: Optional[str] = None
     user_ids: Optional[List[UUID]] = None
     project_ids: Optional[List[UUID]] = None
+
 
 # ---------------- Arena Schemas ----------------
 
@@ -73,9 +79,11 @@ class GroupUpdate(BaseModel):
 class ArenaBase(BaseModel):
     name: str
 
+
 # Arena creation schema, allowing association with only one group upon creation
 class ArenaCreate(ArenaBase):
     group_id: UUID  # Only one group is allowed on creation
+
 
 # Schema for returning Arena information with associated groups
 class Arena(ArenaBase):
@@ -84,31 +92,39 @@ class Arena(ArenaBase):
     class Config:
         orm_mode = True
 
+
 # Arena update schema without group association updates
 class ArenaUpdate(BaseModel):
     name: Optional[str] = None
+
 
 # Schema for associating an arena with additional groups
 class ArenaAssociate(BaseModel):
     group_id: UUID
 
+
 # Schema for dissociating an arena from a specific group
 class ArenaDisassociation(BaseModel):
     group_id: UUID
+
 
 # ---------------- Session Schemas ----------------
 
 class SessionBase(BaseModel):
     arena_id: UUID
-    period_type: str  # You can change this to an Enum if needed
+    project_id: UUID
+    module_id: UUID
+    period_type: PeriodType  # You can change this to an Enum if needed
     start_time: datetime
     end_time: Optional[datetime]
-    access_status: str  # You can change this to an Enum if needed
-    session_status: str  # You can change this to an Enum if needed
-    view_access: str  # You can change this to an Enum if needed
+    access_status: AccessStatus  # You can change this to an Enum if needed
+    session_status: SessionStatus  # You can change this to an Enum if needed
+    view_access: ViewAccess  # You can change this to an Enum if needed
+
 
 class SessionCreate(SessionBase):
     user_ids: List[UUID]
+
 
 class Session(SessionBase):
     id: UUID
@@ -116,12 +132,15 @@ class Session(SessionBase):
     class Config:
         orm_mode = True
 
+
 class SessionUpdate(BaseModel):
     arena_id: Optional[UUID] = None
-    period_type: Optional[str] = None
+    project_id: Optional[UUID] = None
+    module_id: Optional[UUID] = None
+    period_type: Optional[PeriodType] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    access_status: Optional[str] = None
-    session_status: Optional[str] = None
-    view_access: Optional[str] = None
+    access_status: Optional[AccessStatus] = None
+    session_status: Optional[SessionStatus] = None
+    view_access: Optional[ViewAccess] = None
     user_ids: Optional[List[UUID]] = None

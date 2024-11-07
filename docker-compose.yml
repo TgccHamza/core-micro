@@ -11,6 +11,8 @@ services:
       - db
     networks:
       - shared
+#    external_links:
+#      - mongo_link:grpc_url
   db:
     image: mysql:8.0
     restart: always

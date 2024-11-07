@@ -105,7 +105,9 @@ class ArenaSession(Base):
     __tablename__ = "arena_sessions"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    arena_id = Column(String(36))  # No ForeignKey constraint
+    arena_id = Column(String(36))  #No ForeignKey constraint
+    project_id = Column(String(36))  #No ForeignKey constraint
+    module_id = Column(String(36))  #No ForeignKey constraint
     period_type = Column(Enum(PeriodType), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=True)

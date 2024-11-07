@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package filetransfer;
+
+service FileTransfer {
+    rpc UploadFile(UploadRequest) returns (UploadResponse);
+}
+
+message UploadRequest {
+    bytes filedata = 1;
+}
+
+message UploadResponse {
+    bool success = 1;
+    string code = 2;
+}

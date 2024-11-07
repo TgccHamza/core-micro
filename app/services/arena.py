@@ -135,7 +135,9 @@ def dissociate_arena_from_group(db: Session, arena_id: UUID, group_id: UUID):
 
 def create_session(db: Session, session: SessionCreate):
     db_session = models.ArenaSession(
-        arena_id=session.arena_id,
+        arena_id=str(session.arena_id),
+        project_id=str(session.project_id),
+        module_id=str(session.module_id),
         period_type=session.period_type,
         start_time=session.start_time,
         end_time=session.end_time,
@@ -148,7 +150,7 @@ def create_session(db: Session, session: SessionCreate):
     db.refresh(db_session)
 
     for user_id in session.user_ids:
-        db_player = models.ArenaSessionPlayers(session_id=db_session.id, user_id=user_id)
+        db_player = models.ArenaSessionPlayers(session_id=db_session.id, user_id=str(user_id))
         db.add(db_player)
 
     db.commit()
@@ -171,6 +173,8 @@ def update_session(db: Session, session_id: str, session: SessionUpdate):
     db_session.access_status = session.access_status
     db_session.session_status = session.session_status
     db_session.view_access = session.view_access
+    db_session.project_id = session.project_id
+    db_session.module_id = session.module_id
 
     # Update Players
     db.query(models.ArenaSessionPlayers).filter(models.ArenaSessionPlayers.session_id == session_id).delete()

@@ -6,3 +6,6 @@ pydantic
 alembic
 pymysql
 cryptography
+grpcio
+grpcio-tools
+python-multipart

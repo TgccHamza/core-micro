@@ -1,10 +1,14 @@
 # router/project.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
+
+from . import filepb2
+from . import filegrpc
 from .. import schemas
-from ..services import project as services
 from ..database import get_db
+from ..services import project as services
+import grpc
 
 router = APIRouter()
 
@@ -51,3 +55,17 @@ def update_module(module_id: str, module: schemas.ModuleUpdate, db: Session = De
 @router.delete("/modules/{module_id}", response_model=dict)
 def delete_module(module_id: str, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
+
+
+@router.post("/modules/{module_id}/upload")
+async def upload_file(file: UploadFile):
+    # Read the file data
+    file_data = await file.read()
+
+    # Connect to the gRPC server
+    with grpc.insecure_channel('grpc_url:50051') as channel:
+        stub = filegrpc.FileTransferStub(channel)
+        request = filepb2.UploadRequest(filename=file.filename, filedata=file_data)
+        response = stub.UploadFile(request)
+
+    return {"success": response.success, "message": response.message}
