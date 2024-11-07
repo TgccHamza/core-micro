@@ -24,17 +24,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13\x66ile_transfer.proto\x12\x0c\x66iletransfer\"3\n\rUploadRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x10\n\x08\x66iledata\x18\x02 \x01(\x0c\"2\n\x0eUploadResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2W\n\x0c\x46ileTransfer\x12G\n\nUploadFile\x12\x1b.filetransfer.UploadRequest\x1a\x1c.filetransfer.UploadResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13\x66ile_transfer.proto\x12\x0c\x66iletransfer\"!\n\rUploadRequest\x12\x10\n\x08\x66iledata\x18\x01 \x01(\x0c\"/\n\x0eUploadResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0c\n\x04\x63ode\x18\x02 \x01(\t2W\n\x0c\x46ileTransfer\x12G\n\nUploadFile\x12\x1b.filetransfer.UploadRequest\x1a\x1c.filetransfer.UploadResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, '.filepb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'file_transfer_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_UPLOADREQUEST']._serialized_start=37
-  _globals['_UPLOADREQUEST']._serialized_end=88
-  _globals['_UPLOADRESPONSE']._serialized_start=90
-  _globals['_UPLOADRESPONSE']._serialized_end=140
-  _globals['_FILETRANSFER']._serialized_start=142
-  _globals['_FILETRANSFER']._serialized_end=229
+  _globals['_UPLOADREQUEST']._serialized_end=70
+  _globals['_UPLOADRESPONSE']._serialized_start=72
+  _globals['_UPLOADRESPONSE']._serialized_end=119
+  _globals['_FILETRANSFER']._serialized_start=121
+  _globals['_FILETRANSFER']._serialized_end=208
 # @@protoc_insertion_point(module_scope)
