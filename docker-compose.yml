@@ -10,7 +10,10 @@ services:
     # networks:
     #   - shared
 #    external_links:
-#      - mongo_link:grpc_url
+#      - template_micro:grpc_url
+    environment:
+      DATABASE_URL: mysql+pymysql://user:password@db/db_name
+      GRPC_URL: grpc_url:50051
   db:
     image: mysql:8.0
     restart: always

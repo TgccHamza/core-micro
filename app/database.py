@@ -1,11 +1,14 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import Depends
 from sqlalchemy.orm import scoped_session
 
+
 # Database URL (replace with your own database credentials)
-DATABASE_URL = "mysql+pymysql://user:password@db/db_name"
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://user:password@db/db_name")
 
 # Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)

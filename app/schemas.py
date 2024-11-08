@@ -31,6 +31,34 @@ class ProjectResponse(ProjectCreate):
     id: str
 
 
+
+class UserResponse(BaseModel):
+    user_id: str
+
+class GameResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    project_id: str
+    order: Optional[int] = 0
+
+class SessionResponse(BaseModel):
+    id: str
+    game: GameResponse
+    period_type: PeriodType
+    start_time: datetime
+    end_time: datetime
+    access_status: AccessStatus
+    session_status: SessionStatus
+    view_access: ViewAccess
+    players: List[UserResponse]
+
+class ArenaResponse(BaseModel):
+    id: str
+    name: str
+    sessions: List[SessionResponse]
+
+
 # Pydantic Models for ProjectModule
 class ModuleCreate(BaseModel):
     name: str
@@ -51,6 +79,7 @@ class ModuleResponse(ModuleCreate):
 
 # ---------------- Group Schemas ----------------
 
+
 class GroupBase(BaseModel):
     name: str
 
@@ -60,11 +89,21 @@ class GroupCreate(GroupBase):
     project_ids: List[UUID]
 
 
+
+
 class Group(GroupBase):
     id: UUID
+    users: List[UserResponse]
+    projects: List[ProjectResponse]
+    arenas: List[ArenaResponse]
 
     class Config:
         orm_mode = True
+
+class GroupShow(GroupBase):
+    id: UUID
+    users: List[UserResponse]
+    projects: List[ProjectResponse]
 
 
 class GroupUpdate(BaseModel):
