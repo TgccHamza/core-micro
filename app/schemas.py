@@ -35,6 +35,12 @@ class ProjectResponse(ProjectCreate):
 class UserResponse(BaseModel):
     user_id: str
 
+
+class GroupResponse(BaseModel):
+    id: UUID
+    name: str
+    users: List[UserResponse]
+
 class GameResponse(BaseModel):
     id: str
     name: str
@@ -57,6 +63,11 @@ class ArenaResponse(BaseModel):
     id: str
     name: str
     sessions: List[SessionResponse]
+
+class ArenaResponseTop(BaseModel):
+    id: str
+    name: str
+    groups: List[GroupResponse]
 
 
 # Pydantic Models for ProjectModule
@@ -151,8 +162,8 @@ class ArenaDisassociation(BaseModel):
 
 class SessionBase(BaseModel):
     arena_id: UUID
-    project_id: UUID
-    module_id: UUID
+    project_id: Optional[UUID]
+    module_id: Optional[UUID]
     period_type: PeriodType  # You can change this to an Enum if needed
     start_time: datetime
     end_time: Optional[datetime]
@@ -167,6 +178,10 @@ class SessionCreate(SessionBase):
 
 class Session(SessionBase):
     id: UUID
+    project: Optional[ProjectResponse]
+    game: Optional[GameResponse]
+    arena: Optional[ArenaResponseTop]
+    players: List[UserResponse]
 
     class Config:
         orm_mode = True
