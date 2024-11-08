@@ -36,11 +36,11 @@ class ProjectModule(Base):
     order = Column(Integer, nullable=False, default=0)  # Module order within the project
 
     # Updated relationship with primaryjoin
-#     project = relationship(
-#         "Project",
-#         primaryjoin="ProjectModule.project_id == Project.id",
-#         back_populates="modules"
-#     )
+    project = relationship(
+        "Project",
+        foreign_keys=[project_id],
+        primaryjoin="ProjectModule.project_id == Project.id"
+    )
 
 # Group model
 class Group(Base):
@@ -50,9 +50,11 @@ class Group(Base):
     name = Column(String(255), nullable=False)
 
     # Relationships
-#     users = relationship("GroupUsers", back_populates="group")
-#     projects = relationship("GroupProjects", back_populates="group")
-#     arenas = relationship("GroupArenas", back_populates="group")
+    users = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id", foreign_keys='GroupUsers.group_id', back_populates="group")
+    projects = relationship("Project", secondary="group_projects",
+        primaryjoin="GroupProjects.group_id == Group.id",secondaryjoin="GroupProjects.project_id == Project.id", foreign_keys='[GroupProjects.group_id, GroupProjects.project_id]')
+    arenas = relationship("Arena", secondary="group_arenas",
+        primaryjoin="GroupArenas.group_id == Group.id",secondaryjoin="GroupArenas.arena_id == Arena.id", foreign_keys='[GroupArenas.group_id, GroupArenas.arena_id]')
 
 # GroupUsers model
 class GroupUsers(Base):
@@ -63,7 +65,11 @@ class GroupUsers(Base):
     user_id = Column(String(36))   # No ForeignKey constraint
 
     # Relationships
-#     group = relationship("Group", back_populates="users")
+    group = relationship(
+        "Group",
+        foreign_keys=[group_id],
+        primaryjoin="GroupUsers.group_id == Group.id"
+    )
 #     user = relationship("User")
 
 # GroupProjects model
@@ -98,7 +104,9 @@ class Arena(Base):
     name = Column(String(255), nullable=False)
 
     # Relationships
-#     sessions = relationship("ArenaSession", back_populates="arena")
+    sessions = relationship("ArenaSession",
+        foreign_keys="ArenaSession.arena_id",
+        primaryjoin="ArenaSession.arena_id == Arena.id", back_populates="arena")
 
 # ArenaSession model
 class ArenaSession(Base):
@@ -116,8 +124,17 @@ class ArenaSession(Base):
     view_access = Column(Enum(ViewAccess), nullable=False)
 
     # Relationships
-#     arena = relationship("Arena", back_populates="sessions")
-#     players = relationship("ArenaSessionPlayers", back_populates="session")
+    game = relationship("ProjectModule",
+        foreign_keys="ArenaSession.module_id",
+        primaryjoin="ArenaSession.module_id == ProjectModule.id")
+
+    arena = relationship("Arena",
+        foreign_keys="ArenaSession.arena_id",
+        primaryjoin="ArenaSession.arena_id == Arena.id", back_populates="sessions")
+
+    players = relationship("ArenaSessionPlayers",
+        foreign_keys="ArenaSessionPlayers.session_id",
+        primaryjoin="ArenaSessionPlayers.session_id == ArenaSession.id", back_populates="session")
 
 # ArenaSessionPlayers model
 class ArenaSessionPlayers(Base):
@@ -128,5 +145,6 @@ class ArenaSessionPlayers(Base):
     user_id = Column(String(36))      # No ForeignKey constraint
 
     # Relationships
-#     session = relationship("ArenaSession", back_populates="players")
-#     user = relationship("User")
+    session = relationship("ArenaSession",
+        foreign_keys="ArenaSessionPlayers.session_id",
+        primaryjoin="ArenaSessionPlayers.session_id == ArenaSession.id", back_populates="players")

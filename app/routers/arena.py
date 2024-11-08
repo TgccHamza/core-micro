@@ -18,7 +18,7 @@ def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):
 def list_groups(db: Session = Depends(get_db)):
     return service.get_groups(db)
 
-@router.get("/groups/{group_id}", response_model=schemas.Group)
+@router.get("/groups/{group_id}", response_model=schemas.GroupShow)
 def get_group(group_id: str, db: Session = Depends(get_db)):
     group = service.get_group(db, group_id)
     if not group:
