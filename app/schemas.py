@@ -31,6 +31,45 @@ class ProjectResponse(ProjectCreate):
     id: str
 
 
+
+class UserResponse(BaseModel):
+    user_id: str
+
+
+class GroupResponse(BaseModel):
+    id: UUID
+    name: str
+    users: List[UserResponse]
+
+class GameResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    project_id: str
+    order: Optional[int] = 0
+
+class SessionResponse(BaseModel):
+    id: str
+    game: GameResponse
+    period_type: PeriodType
+    start_time: datetime
+    end_time: datetime
+    access_status: AccessStatus
+    session_status: SessionStatus
+    view_access: ViewAccess
+    players: List[UserResponse]
+
+class ArenaResponse(BaseModel):
+    id: str
+    name: str
+    sessions: List[SessionResponse]
+
+class ArenaResponseTop(BaseModel):
+    id: str
+    name: str
+    groups: List[GroupResponse]
+
+
 # Pydantic Models for ProjectModule
 class ModuleCreate(BaseModel):
     name: str
@@ -51,6 +90,7 @@ class ModuleResponse(ModuleCreate):
 
 # ---------------- Group Schemas ----------------
 
+
 class GroupBase(BaseModel):
     name: str
 
@@ -60,11 +100,21 @@ class GroupCreate(GroupBase):
     project_ids: List[UUID]
 
 
+
+
 class Group(GroupBase):
     id: UUID
+    users: List[UserResponse]
+    projects: List[ProjectResponse]
+    arenas: List[ArenaResponse]
 
     class Config:
         orm_mode = True
+
+class GroupShow(GroupBase):
+    id: UUID
+    users: List[UserResponse]
+    projects: List[ProjectResponse]
 
 
 class GroupUpdate(BaseModel):
@@ -112,8 +162,8 @@ class ArenaDisassociation(BaseModel):
 
 class SessionBase(BaseModel):
     arena_id: UUID
-    project_id: UUID
-    module_id: UUID
+    project_id: Optional[UUID]
+    module_id: Optional[UUID]
     period_type: PeriodType  # You can change this to an Enum if needed
     start_time: datetime
     end_time: Optional[datetime]
@@ -128,6 +178,10 @@ class SessionCreate(SessionBase):
 
 class Session(SessionBase):
     id: UUID
+    project: Optional[ProjectResponse]
+    game: Optional[GameResponse]
+    arena: Optional[ArenaResponseTop]
+    players: List[UserResponse]
 
     class Config:
         orm_mode = True
