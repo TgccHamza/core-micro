@@ -10,7 +10,14 @@ services:
     # networks:
     #   - shared
 #    external_links:
-#      - mongo_link:grpc_url
+#      - template_micro:grpc_url
+    environment:
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_HOST: db
+      DB_NAME: db_name
+      GRPC_CONTAINER: grpc_url
+      GRPC_PORT: 50051
   db:
     image: mysql:8.0
     restart: always
