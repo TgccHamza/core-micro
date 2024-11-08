@@ -12,8 +12,12 @@ services:
 #    external_links:
 #      - template_micro:grpc_url
     environment:
-      DATABASE_URL: mysql+pymysql://user:password@db/db_name
-      GRPC_URL: grpc_url:50051
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_HOST: db
+      DB_NAME: db_name
+      GRPC_CONTAINER: grpc_url
+      GRPC_PORT: 50051
   db:
     image: mysql:8.0
     restart: always

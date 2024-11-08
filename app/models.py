@@ -107,6 +107,9 @@ class Arena(Base):
     sessions = relationship("ArenaSession",
         foreign_keys="ArenaSession.arena_id",
         primaryjoin="ArenaSession.arena_id == Arena.id", back_populates="arena")
+    groups = relationship("Group", secondary="group_arenas",
+        primaryjoin="GroupArenas.group_id == Group.id",secondaryjoin="GroupArenas.arena_id == Arena.id", foreign_keys='[GroupArenas.group_id, GroupArenas.arena_id]')
+
 
 # ArenaSession model
 class ArenaSession(Base):
@@ -124,6 +127,10 @@ class ArenaSession(Base):
     view_access = Column(Enum(ViewAccess), nullable=False)
 
     # Relationships
+    project = relationship("Project",
+        foreign_keys="ArenaSession.project_id",
+        primaryjoin="ArenaSession.project_id == Project.id")
+
     game = relationship("ProjectModule",
         foreign_keys="ArenaSession.module_id",
         primaryjoin="ArenaSession.module_id == ProjectModule.id")

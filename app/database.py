@@ -8,7 +8,11 @@ from sqlalchemy.orm import scoped_session
 
 
 # Database URL (replace with your own database credentials)
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://user:password@db/db_name")
+DB_USER = os.getenv("DB_USER", "user")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
+DB_HOST = os.getenv("DB_HOST", "db")
+DB_NAME = os.getenv("DB_NAME", "db_name")
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 
 # Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
