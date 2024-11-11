@@ -18,8 +18,8 @@ jobs:
         AZURE_DEVOPS_USERNAME: h.moukhlis
         AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
       run: |
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@github.com"
+        git config --global user.name "Hamza moukhlis"
+        git config --global user.email "hamz.moukhlis@gmail.com"
         git remote add azure "https://$AZURE_DEVOPS_USERNAME:$AZURE_DEVOPS_PASSWORD@dev.azure.com/TG2C/core-micro/_git/core-micro"
 
     - name: Push changes to Azure DevOps
@@ -27,4 +27,6 @@ jobs:
         AZURE_DEVOPS_USERNAME: h.moukhlis
         AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
       run: |
+        git remote -v
+        git add .
         git push azure dev  # Replace 'main' with the branch you want to push to
