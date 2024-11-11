@@ -1,8 +1,8 @@
 import uuid
 from sqlalchemy import Column, String, Enum, Integer, DateTime
 from sqlalchemy.orm import relationship
-from .database import Base
-from .enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
+from database import Base
+from enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
 
 class Project(Base):
     __tablename__ = "projects"
@@ -14,7 +14,8 @@ class Project(Base):
     slug = Column(String(255), unique=True, index=True)
     visibility = Column(String(50), default="public")  # Default visibility is public
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
-    client_id = Column(String(36), nullable=True, index=True, default=lambda: str(uuid.uuid4()))
+    client_id = Column(String(36), nullable=True, index=True)
+    organisation_code = Column(String(36), nullable=True, index=True)
     client_name = Column(String(255), nullable=True, index=True)  # Client name for easy access
 
     # Updated relationship with primaryjoin
@@ -31,7 +32,7 @@ class ProjectModule(Base):
     name = Column(String(255), index=True)
     type = Column(String(50))  # E.g., game, leaderboard, monitor
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
-
+    template_code = Column(String(36), index=True)  # No ForeignKey constraint
     # New fields
     order = Column(Integer, nullable=False, default=0)  # Module order within the project
 
