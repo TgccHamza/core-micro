@@ -11,7 +11,6 @@ import os
 
 app = FastAPI(docs_url=None)
 
-
 # Custom endpoint for Swagger UI
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
