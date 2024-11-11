@@ -12,14 +12,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
-    - name: Fetch latest commit message from origin
-      run: |
-        # Fetch the latest commit from origin
-        git fetch origin
-        # Capture the latest commit message from origin/master
-        echo "COMMIT_MSG=$(git log origin/master -1 --pretty=%B)" >> $GITHUB_ENV
-
+      
     - name: Configure Git for Azure DevOps
       env:
         AZURE_DEVOPS_USERNAME: h.moukhlis
@@ -27,7 +20,6 @@ jobs:
       run: |
         git config --global user.name "Hamza moukhlis"
         git config --global user.email "hamz.moukhlis@gmail.com"
-        echo $AZURE_DEVOPS_USERNAME
         git remote add azure "https://$AZURE_DEVOPS_USERNAME:$AZURE_DEVOPS_PASSWORD@dev.azure.com/TG2C/core-micro/_git/core-micro"
         git fetch azure
 
@@ -36,4 +28,4 @@ jobs:
         AZURE_DEVOPS_USERNAME: h.moukhlis
         AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
       run: |
-        git push azure origin/master:dev
+        git push azure origin/master:feature-dev
