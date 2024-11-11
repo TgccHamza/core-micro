@@ -31,4 +31,4 @@ jobs:
       run: |
         git branch -r
         git add .
-        git push azure/dev  # Replace 'main' with the branch you want to push to
+        git push azure dev  # Replace 'main' with the branch you want to push to
