@@ -25,7 +25,7 @@ if _version_not_supported:
     )
 
 
-class FileTransferStub(object):
+class TemplateServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -35,13 +35,13 @@ class FileTransferStub(object):
             channel: A grpc.Channel.
         """
         self.UploadFile = channel.unary_unary(
-                '/filetransfer.FileTransfer/UploadFile',
-                request_serializer=file__transfer__pb2.UploadRequest.SerializeToString,
-                response_deserializer=file__transfer__pb2.UploadResponse.FromString,
+                '/templatemanager.TemplateService/UploadFile',
+                request_serializer=file__transfer__pb2.UploadFileRequest.SerializeToString,
+                response_deserializer=file__transfer__pb2.UploadFileResponse.FromString,
                 _registered_method=True)
 
 
-class FileTransferServicer(object):
+class TemplateServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def UploadFile(self, request, context):
@@ -51,22 +51,22 @@ class FileTransferServicer(object):
         raise NotImplementedError('Method not implemented!')
 
 
-def add_FileTransferServicer_to_server(servicer, server):
+def add_TemplateServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'UploadFile': grpc.unary_unary_rpc_method_handler(
                     servicer.UploadFile,
-                    request_deserializer=file__transfer__pb2.UploadRequest.FromString,
-                    response_serializer=file__transfer__pb2.UploadResponse.SerializeToString,
+                    request_deserializer=file__transfer__pb2.UploadFileRequest.FromString,
+                    response_serializer=file__transfer__pb2.UploadFileResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'filetransfer.FileTransfer', rpc_method_handlers)
+            'templatemanager.TemplateService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('filetransfer.FileTransfer', rpc_method_handlers)
+    server.add_registered_method_handlers('templatemanager.TemplateService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class FileTransfer(object):
+class TemplateService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -83,9 +83,9 @@ class FileTransfer(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/filetransfer.FileTransfer/UploadFile',
-            file__transfer__pb2.UploadRequest.SerializeToString,
-            file__transfer__pb2.UploadResponse.FromString,
+            '/templatemanager.TemplateService/UploadFile',
+            file__transfer__pb2.UploadFileRequest.SerializeToString,
+            file__transfer__pb2.UploadFileResponse.FromString,
             options,
             channel_credentials,
             insecure,

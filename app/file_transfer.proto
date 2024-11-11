@@ -1,16 +1,18 @@
 syntax = "proto3";
 
-package filetransfer;
+package templatemanager;
 
-service FileTransfer {
-    rpc UploadFile(UploadRequest) returns (UploadResponse);
+service TemplateService {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
 }
 
-message UploadRequest {
-    bytes filedata = 1;
+message UploadFileRequest {
+  bytes file_data = 1;
+  string filename = 2;
 }
 
-message UploadResponse {
-    bool success = 1;
-    string code = 2;
+message UploadFileResponse {
+  string file_id = 1;
+  bool success = 2;
+  string message = 3;
 }

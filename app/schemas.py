@@ -86,6 +86,7 @@ class ModuleUpdate(BaseModel):
 
 class ModuleResponse(ModuleCreate):
     id: str
+    template_code: Optional[str] = None
 
 
 # ---------------- Group Schemas ----------------

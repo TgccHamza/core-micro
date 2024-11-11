@@ -7,10 +7,11 @@ services:
       - "8001:8000"
     depends_on:
       - db
-    # networks:
-    #   - shared
-#    external_links:
-#      - template_micro:grpc_url
+    networks:
+      - shared
+      - db
+    external_links:
+      - templatemanager:grpc_url
     environment:
       DB_USER: user
       DB_PASSWORD: password
@@ -29,13 +30,14 @@ services:
       MYSQL_PASSWORD: password
     volumes:
       - db_data:/var/lib/mysql
-    # networks:
-    #   - shared
+    networks:
+      - db
 
 volumes:
   db_data:
 
-# networks:
-#   shared:
-#     name: shared_api_network
-#     external: true
+networks:
+   shared:
+     name: shared_api_network
+     external: true
+   db:

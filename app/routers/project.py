@@ -57,9 +57,8 @@ def update_module(module_id: str, module: schemas.ModuleUpdate, db: Session = De
 def delete_module(module_id: str, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
 
-
 @router.post("/modules/{module_id}/upload")
-async def upload_file(file: UploadFile):
+async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(get_db)):
     # Read the file data
     file_data = await file.read()
 
@@ -67,8 +66,10 @@ async def upload_file(file: UploadFile):
     grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
     grpc_port = os.getenv("GRPC_PORT", "50051")
     with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
-        stub = filegrpc.FileTransferStub(channel)
-        request = filepb2.UploadRequest(filename=file.filename, filedata=file_data)
+        # Update the stub to use the TemplateService
+        stub = filegrpc.TemplateServiceStub(channel)
+        # Create the request with the updated message type and fields
+        request = filepb2.UploadFileRequest(file_data=file_data, filename=file.filename)
         response = stub.UploadFile(request)
-
-    return {"success": response.success, "message": response.message}
+        # Return the response data
+        return services.set_template_module(db, module_id, response.file_id)
