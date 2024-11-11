@@ -28,4 +28,4 @@ jobs:
         AZURE_DEVOPS_PASSWORD: ${{ secrets.AZURE_DEVOPS_PASSWORD }}
       run: |
         # Make sure you're pushing from the correct branch
-        git push --force --progress azure master:dev  # Push master to 'dev' branch on Azure
+        git push --force --progress azure master:feature-xyz  # Push master to 'dev' branch on Azure
