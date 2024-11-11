@@ -50,8 +50,8 @@ class Group(Base):
     name = Column(String(255), nullable=False)
 
     # Relationships
-    users = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id", foreign_keys='GroupUsers.group_id', back_populates="group")
-    projects = relationship("Project", secondary="group_projects",
+    managers = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id", foreign_keys='GroupUsers.group_id', back_populates="group")
+    games = relationship("Project", secondary="group_projects",
         primaryjoin="GroupProjects.group_id == Group.id",secondaryjoin="GroupProjects.project_id == Project.id", foreign_keys='[GroupProjects.group_id, GroupProjects.project_id]')
     arenas = relationship("Arena", secondary="group_arenas",
         primaryjoin="GroupArenas.group_id == Group.id",secondaryjoin="GroupArenas.arena_id == Arena.id", foreign_keys='[GroupArenas.group_id, GroupArenas.arena_id]')
@@ -91,6 +91,7 @@ class GroupArenas(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     group_id = Column(String(36))  # No ForeignKey constraint
     arena_id = Column(String(36))  # No ForeignKey constraint
+    user_id = Column(String(36))   # No ForeignKey constraint
 
     # Relationships
 #     group = relationship("Group", back_populates="arenas")

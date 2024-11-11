@@ -18,6 +18,7 @@ services:
       DB_NAME: db_name
       GRPC_CONTAINER: grpc_url
       GRPC_PORT: 50051
+#     SEGMENT_MICRO:
   db:
     image: mysql:8.0
     restart: always

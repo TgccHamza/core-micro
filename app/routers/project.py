@@ -64,7 +64,9 @@ async def upload_file(file: UploadFile):
     file_data = await file.read()
 
     # Connect to the gRPC server
-    with grpc.insecure_channel(f"{os.getenv("GRPC_CONTAINER", "grpc_url")}:{os.getenv("GRPC_PORT", "50051")}") as channel:
+    grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
+    grpc_port = os.getenv("GRPC_PORT", "50051")
+    with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
         stub = filegrpc.FileTransferStub(channel)
         request = filepb2.UploadRequest(filename=file.filename, filedata=file_data)
         response = stub.UploadFile(request)
