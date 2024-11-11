@@ -5,6 +5,7 @@ from .routers import arena
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
+import os
 
 # Base.metadata.create_all(bind=engine)
 
@@ -13,11 +14,12 @@ app = FastAPI(docs_url=None)
 
 # Custom endpoint for Swagger UI
 @app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html(request: Request):
-    path_segments = request.url.path.strip("/").split("/")
-    first_segment = f"/{path_segments[0]}" if path_segments else ""
+async def custom_swagger_ui_html():
+    segment_micro = os.getenv("SEGMENT_MICRO", "")
+    if segment_micro != "" and not segment_micro.startswith("/"):
+        segment_micro = f"/{segment_micro}"
     return get_swagger_ui_html(
-        openapi_url=f"{first_segment}/openapi.json",
+        openapi_url=f"{segment_micro}/openapi.json",
         title="TGCC - Swagger UI",
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
