@@ -28,4 +28,4 @@ jobs:
         AZURE_DEVOPS_USERNAME: h.moukhlis
         AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
       run: |
-        git push  --force --progress --porcelain azure origin/master:azure/test
+        git push  --force --progress --porcelain azure origin/master:refs/remotes/azure/test
