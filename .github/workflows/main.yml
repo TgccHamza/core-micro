@@ -36,7 +36,4 @@ jobs:
         AZURE_DEVOPS_USERNAME: h.moukhlis
         AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
       run: |
-        git branch -r
-        git add .
-        git commit -m "$COMMIT_MSG" || echo "No changes to commit"
-        git push azure dev  # Replace 'main' with the branch you want to push to
+        git push azure origin/master:dev
