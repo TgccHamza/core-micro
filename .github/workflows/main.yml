@@ -20,8 +20,9 @@ jobs:
       run: |
         git config --global user.name "Hamza moukhlis"
         git config --global user.email "hamz.moukhlis@gmail.com"
+        echo $AZURE_DEVOPS_USERNAME
         git remote add azure "https://$AZURE_DEVOPS_USERNAME:$AZURE_DEVOPS_PASSWORD@dev.azure.com/TG2C/core-micro/_git/core-micro"
-        git fetch
+        git fetch azure
 
     - name: Push changes to Azure DevOps
       env:
