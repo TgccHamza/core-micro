@@ -96,7 +96,7 @@ class GroupBase(BaseModel):
 
 
 class GroupCreate(GroupBase):
-    user_ids: List[UUID]
+    user_ids: Optional[List[UUID]] = []
     project_ids: List[UUID]
 
 
@@ -104,8 +104,8 @@ class GroupCreate(GroupBase):
 
 class Group(GroupBase):
     id: UUID
-    users: List[UserResponse]
-    projects: List[ProjectResponse]
+    managers: List[UserResponse]
+    games: List[ProjectResponse]
     arenas: List[ArenaResponse]
 
     class Config:
