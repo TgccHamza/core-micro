@@ -13,6 +13,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Fetch latest commit message from origin
+      run: |
+        # Fetch the latest commit from origin
+        git fetch origin
+        # Capture the latest commit message from origin/master
+        echo "COMMIT_MSG=$(git log origin/master -1 --pretty=%B)" >> $GITHUB_ENV
+
     - name: Configure Git for Azure DevOps
       env:
         AZURE_DEVOPS_USERNAME: h.moukhlis
@@ -31,4 +38,5 @@ jobs:
       run: |
         git branch -r
         git add .
+        git commit -m "$COMMIT_MSG" || echo "No changes to commit"
         git push azure dev  # Replace 'main' with the branch you want to push to
