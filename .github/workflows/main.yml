@@ -3,7 +3,7 @@ name: Push to Azure DevOps Repo
 on:
   push:
     branches:
-      - master  # Replace 'main' with the branch you want to trigger the action on
+      - master  # The branch that triggers the action
 
 jobs:
   push-to-azure:
@@ -16,16 +16,16 @@ jobs:
     - name: Configure Git for Azure DevOps
       env:
         AZURE_DEVOPS_USERNAME: h.moukhlis
-        AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
+        AZURE_DEVOPS_PASSWORD: ${{ secrets.AZURE_DEVOPS_PASSWORD }}
       run: |
-        git config --global user.name "Hamza moukhlis"
+        git config --global user.name "Hamza Moukhlis"
         git config --global user.email "hamz.moukhlis@gmail.com"
         git remote add azure "https://$AZURE_DEVOPS_USERNAME:$AZURE_DEVOPS_PASSWORD@dev.azure.com/TG2C/core-micro/_git/core-micro"
-        git fetch azure
-
+    
     - name: Push changes to Azure DevOps
       env:
         AZURE_DEVOPS_USERNAME: h.moukhlis
-        AZURE_DEVOPS_PASSWORD: 4Iq0Yd9mkpndLzPj3Jpa8H3VeVXszdGtA6gkGguyxXRgyujFxXYiJQQJ99AKACAAAAAZWs9bAAASAZDOXAk7
+        AZURE_DEVOPS_PASSWORD: ${{ secrets.AZURE_DEVOPS_PASSWORD }}
       run: |
-        git push  --force --progress --porcelain azure origin/master:dev
+        # Make sure you're pushing from the correct branch
+        git push --force --progress azure master:dev  # Push master to 'dev' branch on Azure
