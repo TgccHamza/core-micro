@@ -38,6 +38,7 @@ async def health_game(db: Session = Depends(get_db)):
         db.execute(text("SELECT 1"))
         return JSONResponse(content={'status': 'Healthy', 'message': 'Database connected successfully'})
     except Exception as e:
+        print(f"error ==> {str(e)}")
         # Handle exceptions related to database connectivity
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
