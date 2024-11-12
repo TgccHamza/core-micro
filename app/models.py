@@ -1,8 +1,8 @@
 import uuid
 from sqlalchemy import Column, String, Enum, Integer, DateTime
 from sqlalchemy.orm import relationship
-from database import Base
-from enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
+from .database import Base
+from .enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
 
 class Project(Base):
     __tablename__ = "projects"
