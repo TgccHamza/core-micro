@@ -6,6 +6,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
 import os
+from fastapi.openapi.utils import get_openapi
+
 
 # Base.metadata.create_all(bind=engine)
 
@@ -33,3 +35,22 @@ async def health_game():
 
 app.include_router(project.router, tags=["projects"])
 app.include_router(arena.router, tags=["arenas"])
+
+
+# Customize the OpenAPI schema to include "/gamicore" in the paths
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom API",
+        version="1.0.0",
+        description="This is a custom OpenAPI schema",
+        routes=app.routes,
+    )
+    for path in list(openapi_schema["paths"].keys()):
+        segment_micro = os.getenv("SEGMENT_MICRO", "")
+        openapi_schema["paths"][f"{segment_micro}{path}"] = openapi_schema["paths"].pop(path)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
