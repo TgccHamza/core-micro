@@ -16,6 +16,7 @@ services:
       DB_USER: user
       DB_PASSWORD: password
       DB_HOST: db
+      DB_PORT: 3306
       DB_NAME: db_name
       GRPC_CONTAINER: grpc_url
       GRPC_PORT: 50051
