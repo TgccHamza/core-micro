@@ -4,11 +4,11 @@ import os
 from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 
-from . import filepb2
-from . import filegrpc
-from .. import schemas
-from ..database import get_db
-from ..services import project as services
+from app.routers import filepb2
+from app.routers import filegrpc
+from app import schemas
+from app.database import get_db
+from app.services import project as services
 import grpc
 
 router = APIRouter()

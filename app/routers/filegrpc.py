@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import filepb2 as file__transfer__pb2
+from app.routers import filepb2 as file__transfer__pb2
 
 GRPC_GENERATED_VERSION = '1.67.1'
 GRPC_VERSION = grpc.__version__

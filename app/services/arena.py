@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-from .. import models
-from ..schemas import GroupCreate, GroupUpdate, ArenaCreate, ArenaUpdate, SessionCreate, SessionUpdate
-from sqlalchemy.exc import NoResultFound
+from app import models
+from app.schemas import GroupCreate, GroupUpdate, ArenaCreate, ArenaUpdate, SessionCreate, SessionUpdate
 from uuid import UUID
 from sqlalchemy.exc import NoResultFound
 

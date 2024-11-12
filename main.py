@@ -1,19 +1,71 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, Depends, status
-from .database import engine, Base
-from .routers import project
-from .routers import arena
+from app.routers import project
+from app.routers import arena
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
-import os
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from .database import get_db
+from app.database import get_db
+import subprocess
+from alembic.config import Config
+from alembic import command
 
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI(docs_url=None)
+
+
+@app.get("/cwd")
+async def get_cwd():
+    return {"current_working_directory": os.getcwd()}
+
+
+@app.post("/migrate")
+async def run_migrations():
+    """Endpoint to run Alembic migrations."""
+    try:
+        alembic_path = '/app/app/alembic.ini'
+        alembic_cfg = Config(alembic_path)
+        command.upgrade(alembic_cfg, "head")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Migrations applied successfully"}
+        )
+
+    except subprocess.CalledProcessError as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": f"Migration failed: {e}"}
+        )
+
+
+@app.post("/generate-migration")
+async def generate_migrations():
+    """Endpoint to run Alembic migrations."""
+    try:
+        alembic_path = '/app/app/alembic.ini'
+
+        alembic_cfg = Config(alembic_path)
+        command.revision(alembic_cfg, autogenerate=True)
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Migrations has been generated"}
+        )
+
+    except subprocess.CalledProcessError as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": f"Migration failed to generate: {e}"}
+        )
 
 
 # Custom endpoint for Swagger UI

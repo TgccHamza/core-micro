@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas
-from ..services import arena as service
-from ..database import get_db
+from app import schemas
+from app.services import arena as service
+from app.database import get_db
 from uuid import UUID
 from sqlalchemy.exc import NoResultFound
 

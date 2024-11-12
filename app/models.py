@@ -1,8 +1,8 @@
 import uuid
 from sqlalchemy import Column, String, Enum, Integer, DateTime
 from sqlalchemy.orm import relationship
-from .database import Base
-from .enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
+from app.database import Base
+from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus
 
 class Project(Base):
     __tablename__ = "projects"
@@ -17,6 +17,7 @@ class Project(Base):
     client_id = Column(String(36), nullable=True, index=True)
     organisation_code = Column(String(36), nullable=True, index=True)
     client_name = Column(String(255), nullable=True, index=True)  # Client name for easy access
+    client_address = Column(String(255), nullable=True, index=True)  # Client name for easy access
 
     # Updated relationship with primaryjoin
 #     modules = relationship(
