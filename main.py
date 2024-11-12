@@ -20,19 +20,13 @@ from alembic import command
 
 app = FastAPI(docs_url=None)
 
-
-@app.get("/cwd")
-async def get_cwd():
-    return {"current_working_directory": os.getcwd()}
-
-
 @app.post("/migrate")
 async def run_migrations():
     """Endpoint to run Alembic migrations."""
     try:
         alembic_path = '/app/app/alembic.ini'
         alembic_cfg = Config(alembic_path)
-        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL)
+        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL.replace('%', '%%'))
         command.upgrade(alembic_cfg, "head")
 
         return JSONResponse(
@@ -46,7 +40,6 @@ async def run_migrations():
             content={"message": f"Migration failed: {e}"}
         )
 
-
 @app.post("/generate-migration")
 async def generate_migrations():
     """Endpoint to run Alembic migrations."""
@@ -54,7 +47,7 @@ async def generate_migrations():
         alembic_path = '/app/app/alembic.ini'
 
         alembic_cfg = Config(alembic_path)
-        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL)
+        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL.replace('%', '%%'))
         command.revision(alembic_cfg, autogenerate=True)
 
         return JSONResponse(
