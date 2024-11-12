@@ -17,7 +17,6 @@ class Project(Base):
     client_id = Column(String(36), nullable=True, index=True)
     organisation_code = Column(String(36), nullable=True, index=True)
     client_name = Column(String(255), nullable=True, index=True)  # Client name for easy access
-    client_address = Column(String(255), nullable=True, index=True)  # Client name for easy access
 
     # Updated relationship with primaryjoin
 #     modules = relationship(
