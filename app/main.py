@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Depends, status
 from .database import engine, Base
 from .routers import project
 from .routers import arena
@@ -7,11 +7,14 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any
 import os
 from fastapi.openapi.utils import get_openapi
-
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from .database import get_db
 
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI(docs_url=None)
+
 
 # Custom endpoint for Swagger UI
 @app.get("/docs", include_in_schema=False)
@@ -29,8 +32,17 @@ async def custom_swagger_ui_html():
 
 
 @app.get("/health", response_model=Dict[str, Any])
-async def health_game():
-    return JSONResponse(content={'msg': 'Hello world'})
+async def health_game(db: Session = Depends(get_db)):
+    try:
+        # Attempt to execute a simple query to check if the database connection works
+        db.execute(text("SELECT 1"))
+        return JSONResponse(content={'status': 'Healthy', 'message': 'Database connected successfully'})
+    except Exception as e:
+        # Handle exceptions related to database connectivity
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={'status': 'Unhealthy', 'message': 'Database connection failed', 'error': str(e)}
+        )
 
 
 app.include_router(project.router, tags=["projects"])
@@ -52,5 +64,6 @@ def custom_openapi():
         openapi_schema["paths"][f"{segment_micro}{path}"] = openapi_schema["paths"].pop(path)
     app.openapi_schema = openapi_schema
     return app.openapi_schema
+
 
 app.openapi = custom_openapi
