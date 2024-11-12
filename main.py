@@ -12,8 +12,7 @@ from typing import Dict, Any
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.database import get_db
-import subprocess
+from app.database import get_db, DATABASE_URL
 from alembic.config import Config
 from alembic import command
 
@@ -33,6 +32,7 @@ async def run_migrations():
     try:
         alembic_path = '/app/app/alembic.ini'
         alembic_cfg = Config(alembic_path)
+        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL)
         command.upgrade(alembic_cfg, "head")
 
         return JSONResponse(
@@ -54,6 +54,7 @@ async def generate_migrations():
         alembic_path = '/app/app/alembic.ini'
 
         alembic_cfg = Config(alembic_path)
+        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL)
         command.revision(alembic_cfg, autogenerate=True)
 
         return JSONResponse(
@@ -61,7 +62,7 @@ async def generate_migrations():
             content={"message": "Migrations has been generated"}
         )
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": f"Migration failed to generate: {e}"}
