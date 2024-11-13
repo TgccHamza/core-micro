@@ -10,11 +10,11 @@ router = APIRouter()
 
 # ---------------- Group Routes ----------------
 
-@router.post("/groups/", response_model=schemas.Group)
+@router.post("/groups", response_model=schemas.Group)
 def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):
     return service.create_group(db, group)
 
-@router.get("/groups/", response_model=list[schemas.Group])
+@router.get("/groups", response_model=list[schemas.Group])
 def list_groups(db: Session = Depends(get_db)):
     return service.get_groups(db)
 
@@ -41,11 +41,11 @@ def delete_group(group_id: str, db: Session = Depends(get_db)):
 
 # ---------------- Arena Routes ----------------
 
-@router.post("/arenas/", response_model=schemas.Arena)
+@router.post("/arenas", response_model=schemas.Arena)
 def create_arena(arena: schemas.ArenaCreate, db: Session = Depends(get_db)):
     return service.create_arena(db, arena)
 
-@router.get("/arenas/", response_model=list[schemas.Arena])
+@router.get("/arenas", response_model=list[schemas.Arena])
 def list_arenas(db: Session = Depends(get_db)):
     return service.get_arenas(db)
 
@@ -89,11 +89,11 @@ def dissociate_arena(arena_id: UUID, dissociation: schemas.ArenaDisassociation, 
 
 # ---------------- Session Routes ----------------
 
-@router.post("/sessions/", response_model=schemas.Session)
+@router.post("/sessions", response_model=schemas.Session)
 def create_session(session: schemas.SessionCreate, db: Session = Depends(get_db)):
     return service.create_session(db, session)
 
-@router.get("/sessions/", response_model=list[schemas.Session])
+@router.get("/sessions", response_model=list[schemas.Session])
 def list_sessions(db: Session = Depends(get_db)):
     return service.get_sessions(db)
 
