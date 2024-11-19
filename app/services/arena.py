@@ -1,13 +1,20 @@
 from sqlalchemy.orm import Session
 from app import models
-from app.schemas import GroupCreate, GroupUpdate, ArenaCreate, ArenaUpdate, SessionCreate, SessionUpdate
 from uuid import UUID
 from sqlalchemy.exc import NoResultFound
 
+from app.payloads.request.ArenaCreateRequest import ArenaCreateRequest
+from app.payloads.request.ArenaUpdateRequest import ArenaUpdateRequest
+from app.payloads.request.GroupCreateRequest import GroupCreateRequest
+from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
+from app.payloads.request.SessionUpdateRequest import SessionUpdateRequest
+from app.payloads.response.SessionResponse import SessionCreateRequest
+
+
 # ---------------- Group CRUD Operations ----------------
 
-def create_group(db: Session, group: GroupCreate):
-    db_group = models.Group(name=group.name)
+def create_group(db: Session, group: GroupCreateRequest, org_id: str):
+    db_group = models.Group(name=group.name, organisation_code=org_id)
     db.add(db_group)
     db.commit()
     db.refresh(db_group)
@@ -23,14 +30,17 @@ def create_group(db: Session, group: GroupCreate):
     db.commit()
     return db_group
 
-def get_groups(db: Session):
-    return db.query(models.Group).all()
 
-def get_group(db: Session, group_id: str):
-    return db.query(models.Group).filter(models.Group.id == group_id).first()
+def get_groups(db: Session, org_id: str):
+    return db.query(models.Group).filter(models.Group.organisation_code == org_id).all()
 
-def update_group(db: Session, group_id: str, group: GroupUpdate):
-    db_group = get_group(db, group_id)
+
+def get_group(db: Session, group_id: str, org_id: str):
+    return db.query(models.Group).filter(models.Group.id == group_id, models.Group.organisation_code == org_id).first()
+
+
+def update_group(db: Session, group_id: str, group: GroupUpdateRequest, org_id: str):
+    db_group = get_group(db, group_id, org_id)
     if not db_group:
         raise NoResultFound("Group not found")
 
@@ -51,8 +61,9 @@ def update_group(db: Session, group_id: str, group: GroupUpdate):
     db.commit()
     return db_group
 
-def delete_group(db: Session, group_id: str):
-    db_group = get_group(db, group_id)
+
+def delete_group(db: Session, group_id: str, org_id: str):
+    db_group = get_group(db, group_id, org_id)
     if not db_group:
         raise NoResultFound("Group not found")
 
@@ -62,11 +73,12 @@ def delete_group(db: Session, group_id: str):
     db.commit()
     return {"message": "Group deleted successfully"}
 
+
 # ---------------- Arena CRUD Operations ----------------
 
 # Create an Arena and associate it with a single group
-def create_arena(db: Session, arena: ArenaCreate):
-    db_arena = models.Arena(name=arena.name)
+def create_arena(db: Session, arena: ArenaCreateRequest, org_id: str):
+    db_arena = models.Arena(name=arena.name, organisation_code=org_id)
     db.add(db_arena)
     db.commit()
     db.refresh(db_arena)
@@ -77,17 +89,21 @@ def create_arena(db: Session, arena: ArenaCreate):
     db.commit()
     return db_arena
 
+
 # Get all Arenas with their associated groups
-def get_arenas(db: Session):
-    return db.query(models.Arena).all()
+def get_arenas(db: Session, org_id: str):
+    return db.query(models.Arena).filter(models.Arena.organisation_code == org_id).all()
+
 
 # Get a specific Arena by ID
-def get_arena(db: Session, arena_id: UUID):
-    return db.query(models.Arena).filter(models.Arena.id == str(arena_id)).first()
+def get_arena(db: Session, arena_id: UUID, org_id: str):
+    return db.query(models.Arena).filter(models.Arena.id == str(arena_id),
+                                         models.Arena.organisation_code == org_id).first()
+
 
 # Update Arena name only (group association updates are not allowed here)
-def update_arena(db: Session, arena_id: UUID, arena: ArenaUpdate):
-    db_arena = get_arena(db, arena_id)
+def update_arena(db: Session, arena_id: UUID, arena: ArenaUpdateRequest, org_id: str):
+    db_arena = get_arena(db, arena_id, org_id)
     if not db_arena:
         raise NoResultFound("Arena not found")
 
@@ -97,9 +113,10 @@ def update_arena(db: Session, arena_id: UUID, arena: ArenaUpdate):
     db.commit()
     return db_arena
 
+
 # Delete an Arena
-def delete_arena(db: Session, arena_id: UUID):
-    db_arena = get_arena(db, arena_id)
+def delete_arena(db: Session, arena_id: UUID, org_id: str):
+    db_arena = get_arena(db, arena_id, org_id)
     if not db_arena:
         raise NoResultFound("Arena not found")
 
@@ -108,12 +125,14 @@ def delete_arena(db: Session, arena_id: UUID):
     db.commit()
     return {"message": "Arena deleted successfully"}
 
+
 # Associate an Arena with an additional group
 def associate_arena_with_group(db: Session, arena_id: UUID, group_id: UUID):
     association = models.GroupArenas(group_id=str(group_id), arena_id=str(arena_id))
     db.add(association)
     db.commit()
     return {"message": f"Arena {arena_id} associated with Group {group_id}"}
+
 
 # Dissociate an Arena from a specific group
 def dissociate_arena_from_group(db: Session, arena_id: UUID, group_id: UUID):
@@ -132,37 +151,40 @@ def dissociate_arena_from_group(db: Session, arena_id: UUID, group_id: UUID):
 
 # ---------------- Session CRUD Operations ----------------
 
-def create_session(db: Session, session: SessionCreate):
+def create_session(db: Session, session: SessionCreateRequest, org_id: str):
     db_session = models.ArenaSession(
         arena_id=str(session.arena_id),
         project_id=str(session.project_id),
-        module_id=str(session.module_id),
         period_type=session.period_type,
         start_time=session.start_time,
         end_time=session.end_time,
         access_status=session.access_status,
         session_status=session.session_status,
-        view_access=session.view_access
+        view_access=session.view_access,
+        organisation_code=org_id
     )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
 
     for user_id in session.user_ids:
-        db_player = models.ArenaSessionPlayers(session_id=db_session.id, user_id=str(user_id))
+        db_player = models.ArenaSessionPlayers(session_id=db_session.id, user_id=str(user_id), organisation_code=org_id)
         db.add(db_player)
 
     db.commit()
     return db_session
 
-def get_sessions(db: Session):
-    return db.query(models.ArenaSession).all()
 
-def get_session(db: Session, session_id: str):
-    return db.query(models.ArenaSession).filter(models.ArenaSession.id == session_id).first()
+def get_sessions(db: Session, org_id: str):
+    return db.query(models.ArenaSession).filter(models.ArenaSession.organisation_code == org_id).all()
 
-def update_session(db: Session, session_id: str, session: SessionUpdate):
-    db_session = get_session(db, session_id)
+
+def get_session(db: Session, session_id: str, org_id: str):
+    return db.query(models.ArenaSession).filter(models.ArenaSession.id == session_id, models.ArenaSession.organisation_code == org_id).first()
+
+
+def update_session(db: Session, session_id: str, session: SessionUpdateRequest, org_id: str):
+    db_session = get_session(db, session_id, org_id=org_id)
     if not db_session:
         raise NoResultFound("Session not found")
 
@@ -173,7 +195,6 @@ def update_session(db: Session, session_id: str, session: SessionUpdate):
     db_session.session_status = session.session_status
     db_session.view_access = session.view_access
     db_session.project_id = session.project_id
-    db_session.module_id = session.module_id
 
     # Update Players
     db.query(models.ArenaSessionPlayers).filter(models.ArenaSessionPlayers.session_id == session_id).delete()
@@ -184,8 +205,9 @@ def update_session(db: Session, session_id: str, session: SessionUpdate):
     db.commit()
     return db_session
 
-def delete_session(db: Session, session_id: str):
-    db_session = get_session(db, session_id)
+
+def delete_session(db: Session, session_id: str, org_id: str):
+    db_session = get_session(db, session_id, org_id)
     if not db_session:
         raise NoResultFound("Session not found")
 

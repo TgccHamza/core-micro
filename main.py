@@ -18,9 +18,10 @@ from alembic import command
 
 # Base.metadata.create_all(bind=engine)
 
-app = FastAPI(docs_url=None)
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-@app.post("/migrate")
+
+@app.post("/server/migrate")
 async def run_migrations():
     """Endpoint to run Alembic migrations."""
     try:
@@ -40,7 +41,8 @@ async def run_migrations():
             content={"message": f"Migration failed: {e}"}
         )
 
-@app.post("/generate-migration")
+
+@app.post("/server/generate-migration")
 async def generate_migrations():
     """Endpoint to run Alembic migrations."""
     try:
@@ -60,21 +62,6 @@ async def generate_migrations():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": f"Migration failed to generate: {e}"}
         )
-
-
-# Custom endpoint for Swagger UI
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    segment_micro = os.getenv("SEGMENT_MICRO", "")
-    if segment_micro != "" and not segment_micro.startswith("/"):
-        segment_micro = f"/{segment_micro}"
-    return get_swagger_ui_html(
-        openapi_url=f"{segment_micro}/openapi.json",
-        title="TGCC - Swagger UI",
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png"
-    )
 
 
 @app.get("/health", response_model=Dict[str, Any])
@@ -102,25 +89,45 @@ async def health_game(db: Session = Depends(get_db)):
         )
 
 
-app.include_router(project.router, tags=["projects"])
-app.include_router(arena.router, tags=["arenas"])
+app.include_router(project.client_router, tags=["projects"])
+app.include_router(project.admin_router, tags=["projects", "client"])
+app.include_router(arena.router, tags=["arenas", "client"])
 
 
-# Customize the OpenAPI schema to include "/gamicore" in the paths
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
+@app.get("/openapi-client.json", include_in_schema=False)
+async def get_admin_openapi_json():
+    return custom_openapi(['client'])
+
+
+# Custom endpoint for Swagger UI
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    app.openapi_schema = custom_openapi(["client"])
+    segment_micro = os.getenv("SEGMENT_MICRO", "")
+    if segment_micro != "" and not segment_micro.startswith("/"):
+        segment_micro = f"/{segment_micro}"
+    return get_swagger_ui_html(
+        openapi_url=f"{segment_micro}/openapi-client.json",
+        title="TGCC - Swagger UI",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png"
+    )
+
+
+# Custom OpenAPI Schemas for Each Category
+def custom_openapi(schema_tags):
     openapi_schema = get_openapi(
         title="Custom API",
         version="1.0.0",
-        description="This is a custom OpenAPI schema",
-        routes=app.routes,
+        description="Custom split OpenAPI schema for admin, client, and server",
+        routes=[route for route in app.routes if any(tag in schema_tags for tag in route.tags)]
     )
+
+    print([route.tags for route in app.routes])
+
+    segment_micro = os.getenv("SEGMENT_MICRO", "")
     for path in list(openapi_schema["paths"].keys()):
-        segment_micro = os.getenv("SEGMENT_MICRO", "")
         openapi_schema["paths"][f"{segment_micro}{path}"] = openapi_schema["paths"].pop(path)
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
 
-
-app.openapi = custom_openapi
+    return openapi_schema

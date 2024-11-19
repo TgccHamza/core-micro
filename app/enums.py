@@ -2,6 +2,15 @@
 # Define the Enum for periodType
 from enum import Enum as PyEnum
 
+class GameType(PyEnum):
+    DIGITAL = "digital"
+    PHYGITAL = "phygital"
+    PHYSICAL = "physical"
+
+class PlayingType(PyEnum):
+    SOLO = "solo"
+    TEAM = "team"
+
 # Define Enum for accessType
 class AccessStatus(PyEnum):
     AUTH = "auth"
@@ -24,4 +33,4 @@ class ViewAccess(PyEnum):
 
 class ActivationStatus(PyEnum):
     ACTIVE = "active"
-    DESACTIVE = "desactive"
+    INACTIVE = "inactive"
