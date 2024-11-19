@@ -96,6 +96,7 @@ async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(ge
     # Connect to the gRPC server
     grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
     grpc_port = os.getenv("GRPC_PORT", "50051")
+    return {'test': 'test'}
     with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
         # Update the stub to use the TemplateService
         stub = filegrpc.TemplateServiceStub(channel)
