@@ -89,8 +89,8 @@ async def health_game(db: Session = Depends(get_db)):
         )
 
 
-app.include_router(project.client_router, tags=["projects"])
-app.include_router(project.admin_router, tags=["projects", "client"])
+app.include_router(project.client_router, tags=["projects", "client"])
+app.include_router(project.admin_router, tags=["projects" ])
 app.include_router(arena.router, tags=["arenas", "client"])
 
 
@@ -123,8 +123,6 @@ def custom_openapi(schema_tags):
         description="Custom split OpenAPI schema for admin, client, and server",
         routes=[route for route in app.routes if any(tag in schema_tags for tag in route.tags)]
     )
-
-    print([route.tags for route in app.routes])
 
     segment_micro = os.getenv("SEGMENT_MICRO", "")
     for path in list(openapi_schema["paths"].keys()):
