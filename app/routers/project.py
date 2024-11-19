@@ -25,7 +25,9 @@ from app.database import get_db
 from app.services import project as services
 import grpc
 
-admin_router = APIRouter()
+admin_router = APIRouter(
+    route_class=middlewareWrapper(middlewares=[CollabAuthMiddleware])
+)
 
 client_router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
@@ -86,13 +88,8 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
 
 
-@admin_router.post("/test")
-async def upload_file(module_id: str):
-    return {'test': module_id}
-
-
 @admin_router.post("/modules/{module_id}/upload")
-async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(get_db)):
+async def upload_file(module_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file:
         return {"message": "No upload file sent"}
 
