@@ -88,6 +88,11 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
 
 
+@admin_router.post("/test")
+async def upload_file(module_id: str):
+    return {'test': module_id}
+
+
 @admin_router.post("/modules/{module_id}/upload")
 async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(get_db)):
     # Read the file data
@@ -96,7 +101,7 @@ async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(ge
     # Connect to the gRPC server
     grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
     grpc_port = os.getenv("GRPC_PORT", "50051")
-    return {'test': 'test'}
+    return {'test': 'test 2'}
     with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
         # Update the stub to use the TemplateService
         stub = filegrpc.TemplateServiceStub(channel)
@@ -115,7 +120,7 @@ def admin_space(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Sessio
 
 
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
-def game_view(game_id: str,jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     org_id = jwt_claims.get("org_id")
     return services.gameView(db=db, org_id=org_id, game_id=game_id)
 
