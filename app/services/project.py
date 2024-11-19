@@ -1,15 +1,19 @@
 from datetime import datetime, timedelta
+from logging import Manager
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from app import models
+from app.models import Arena
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
 from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.EspaceAdminClientResponse import EventGameResponse, FavoriteGameResponse, RecentGameResponse, \
     GroupResponse, ManagerResponse, ArenaResponse, AdminSpaceClientResponse
+from app.payloads.response.GameViewClientResponse import GameViewArenaResponse, GameViewGroupResponse, \
+    GameViewManagerResponse, GameViewSessionResponse, GameViewSessionPlayerClientResponse, GameViewClientResponse
 
 
 def list_projects(db: Session):
@@ -207,7 +211,7 @@ def espaceAdmin(db, user_id, org_id):
             game_name=favorite_project.project.name,
             client_name=favorite_project.project.client_name,
             online_date=favorite_project.project.start_time
-        ) for favorite_project in favorite_projects
+        ) for favorite_project in favorite_projects if favorite_project.project
     ]
 
     recent_games = [
@@ -246,4 +250,87 @@ def espaceAdmin(db, user_id, org_id):
         events=events,
         favorite_games=favorite_games,
         recent_games=recent_games
+    )
+
+
+def gameView(db, org_id, game_id):
+    game = db.query(models.Project).filter(
+        models.Project.organisation_code == org_id,
+        models.Project.id == game_id
+    ).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    total_groups = (db.query(models.GroupProjects)
+                    .filter(models.GroupProjects.project_id == game.id).count())
+
+    total_managers = (db.query(models.Group)
+                      .join(models.GroupProjects, models.Group.id == models.GroupProjects.group_id)
+                      .join(models.GroupUsers, models.Group.id == models.GroupUsers.group_id)
+                      .filter(models.GroupProjects.project_id == game_id)
+                      .count())
+
+    sessions = game.arena_sessions
+    arena_items = (db.query(models.Arena)
+                   .join(models.GroupArenas, models.Arena.id == models.GroupArenas.arena_id)
+                   .join(models.GroupProjects, models.GroupArenas.group_id == models.GroupProjects.group_id)
+                   .filter(models.GroupProjects.project_id == game_id)
+                   .all())
+
+    arenas = {}
+
+    for arena in arena_items:
+        arena_resp = GameViewArenaResponse(id=arena.id, name=arena.name, sessions=[])
+        if len(arena.groups) > 0:
+            arena_resp.group = GameViewGroupResponse(
+                id=arena.groups[0].id,
+                name=arena.groups[0].name,
+                managers=[
+                    GameViewManagerResponse(id=manager.user_id, email=manager.user_email,
+                                            first_name=manager.first_name, last_name=manager.last_name,
+                                            picture=manager.picture)
+                    for manager in arena.groups[0].managers
+                ]
+            )
+        arenas[arena.id] = arena_resp
+
+    for session in sessions:
+        gameview_session = GameViewSessionResponse(id=session.id,
+                                                   period_type=session.period_type,
+                                                   start_time=session.start_time,
+                                                   end_time=session.end_time,
+                                                   access_status=session.access_status,
+                                                   session_status=session.session_status,
+                                                   view_access=session.view_access,
+                                                   players=[
+                                                       GameViewSessionPlayerClientResponse(
+                                                           user_id=player.user_id,
+                                                           email=player.user_email,
+                                                           first_name=None,
+                                                           last_name=None,
+                                                           picture=None
+                                                       )
+                                                       for player in session.players
+                                                   ]
+                                                   )
+        if session.arena.id in arenas:
+            arenas[session.arena.id].sessions.append(gameview_session)
+
+    return GameViewClientResponse(
+        id=game.id,
+        game_name=game.name,
+        client_name=game.client_name,
+        description=game.description,
+        visibility=game.visibility,
+        online_date=game.start_time,
+        end_date=game.end_time,
+        game_type=game.game_type,
+        playing_type=game.playing_type,
+        total_managers=total_managers,
+        total_groups=total_groups,
+        arenas=[arenas[key] for key in arenas],
+        total_players=(db.query(models.ArenaSessionPlayers).filter(
+            models.ArenaSessionPlayers.module_id == game.module_game_id
+        ).count()),
+        tags=[x.strip() for x in game.tags.split(",")]
     )

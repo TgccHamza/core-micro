@@ -15,6 +15,7 @@ from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.EspaceAdminClientResponse import AdminSpaceClientResponse
 from app.payloads.response.FavoriteResponse import FavoriteResponse
+from app.payloads.response.GameViewClientResponse import GameViewClientResponse
 from app.payloads.response.ModuleAdminResponse import ModuleAdminResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectClientWebResponse import ProjectClientWebResponse
@@ -105,11 +106,17 @@ async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(ge
         return services.set_template_module(db, module_id, response.file_id)
 
 
-@client_router.post("/espace-admin", response_model=AdminSpaceClientResponse)
+@client_router.get("/espace-admin", response_model=AdminSpaceClientResponse)
 def admin_space(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     org_id = jwt_claims.get("org_id")
     user_id = jwt_claims.get("uid")
     return services.espaceAdmin(db=db, user_id=user_id, org_id=org_id)
+
+
+@client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
+def game_view(game_id: str,jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+    org_id = jwt_claims.get("org_id")
+    return services.gameView(db=db, org_id=org_id, game_id=game_id)
 
 
 @client_router.post("/projects/{project_id}/favorite", response_model=FavoriteResponse)

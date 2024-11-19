@@ -1,7 +1,9 @@
 
 # Define the Enum for periodType
 from enum import Enum as PyEnum
-
+class ModuleType(PyEnum):
+    GAME = "game"
+    EXTENSION = "extension"
 class GameType(PyEnum):
     DIGITAL = "digital"
     PHYGITAL = "phygital"

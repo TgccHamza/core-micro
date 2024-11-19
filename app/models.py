@@ -4,7 +4,8 @@ from datetime import datetime
 from sqlalchemy import Column, String, Enum, Integer, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
-from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus, GameType, PlayingType
+from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus, GameType, PlayingType, \
+    ModuleType
 
 
 class Project(Base):
@@ -25,6 +26,8 @@ class Project(Base):
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
     module_game_id = Column(String(36), nullable=True, index=True)
+    module_gamemaster_id = Column(String(36), nullable=True)
+    module_super_game_master_id = Column(String(36), nullable=True)
     tags = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())
 
@@ -44,13 +47,22 @@ class Project(Base):
                           foreign_keys='[GroupProjects.group_id, GroupProjects.project_id]',
                           viewonly=True)
 
+    arena_sessions = relationship(
+        "ArenaSession",
+        primaryjoin="Project.id == ArenaSession.project_id",
+        back_populates="project",
+        foreign_keys='ArenaSession.project_id',
+        viewonly=True
+    )
+
 
 class ProjectModule(Base):
     __tablename__ = "project_modules"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
-    type = Column(String(50))  # E.g., game, leaderboard, monitor
+    description = Column(String(255), index=True)
+    type = Column(Enum(ModuleType), default=ModuleType.EXTENSION)
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
     template_code = Column(String(36), index=True)  # No ForeignKey constraint
     # New fields
@@ -176,7 +188,7 @@ class Arena(Base):
     groups = relationship("Group", secondary="group_arenas",
                           primaryjoin="GroupArenas.group_id == Group.id",
                           secondaryjoin="GroupArenas.arena_id == Arena.id",
-                          foreign_keys='[GroupArenas.group_id, GroupArenas.arena_id, GroupArenas.user_id]',
+                          foreign_keys='[GroupArenas.group_id, GroupArenas.arena_id]',
                           back_populates="arenas",
                           viewonly=True)
 
@@ -195,6 +207,10 @@ class ArenaSession(Base):
     access_status = Column(Enum(AccessStatus), nullable=False)
     session_status = Column(Enum(SessionStatus), nullable=False)
     view_access = Column(Enum(ViewAccess), nullable=False)
+    super_game_master_id = Column(String(36), nullable=True)
+    player_module_id = Column(String(36), nullable=True)
+    gamemaster_module_id = Column(String(36), nullable=True)
+    super_game_master_module_id = Column(String(36), nullable=True)
 
     # Relationships
     project = relationship("Project",
@@ -213,6 +229,21 @@ class ArenaSession(Base):
                            viewonly=True)
 
 
+class ArenaSessionTeam(Base):
+    __tablename__ = "arena_session_teams"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(255), nullable=False)
+    session_id = Column(String(36))  # No ForeignKey constraint
+
+
+class ArenaSessionTeamGameMaster(Base):
+    __tablename__ = "arena_session_team_game_masters"
+
+    team_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), nullable=False)
+
+
 # ArenaSessionPlayers model
 class ArenaSessionPlayers(Base):
     __tablename__ = "arena_session_players"
@@ -220,6 +251,7 @@ class ArenaSessionPlayers(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organisation_code = Column(String(36), nullable=True, index=True)
     session_id = Column(String(36))  # No ForeignKey constraint
+    team_id = Column(String(36), nullable=True)  # No ForeignKey constraint
     user_id = Column(String(36), nullable=True)  # No ForeignKey constraint
     user_email = Column(String(255), nullable=True)
     module_id = Column(String(36))  # No ForeignKey constraint
