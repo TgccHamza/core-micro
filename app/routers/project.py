@@ -95,13 +95,16 @@ async def upload_file(module_id: str):
 
 @admin_router.post("/modules/{module_id}/upload")
 async def upload_file(module_id: str, file: UploadFile, db: Session = Depends(get_db)):
+    if not file:
+        return {"message": "No upload file sent"}
+
     # Read the file data
     file_data = await file.read()
 
     # Connect to the gRPC server
     grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
     grpc_port = os.getenv("GRPC_PORT", "50051")
-    return {'test': 'test 2'}
+
     with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
         # Update the stub to use the TemplateService
         stub = filegrpc.TemplateServiceStub(channel)
