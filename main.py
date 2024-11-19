@@ -16,6 +16,12 @@ from app.database import get_db, DATABASE_URL
 from alembic.config import Config
 from alembic import command
 
+import tempfile
+
+print("Temp directory before changing it:", tempfile.gettempdir())
+tempfile.tempdir = "/app/temp"
+print("Temp directory after changing it:", tempfile.gettempdir())
+
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)

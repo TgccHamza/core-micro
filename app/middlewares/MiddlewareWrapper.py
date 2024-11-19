@@ -18,7 +18,8 @@ def middlewareWrapper(middlewares: List[BaseHTTPMiddleware] = []) -> Type[APIRou
                     middleware_instance = current_middleware(self.app)
                     handler, request = await middleware_instance.dispatch(request=request, call_next=handler)
 
-
+                body = await request.body()
+                print("Request body 2:", body[1:200])  # Log request body
                 return await handler(request)
 
             return custom_route_handler
