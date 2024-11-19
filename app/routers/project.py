@@ -25,9 +25,7 @@ from app.database import get_db
 from app.services import project as services
 import grpc
 
-admin_router = APIRouter(
-    route_class=middlewareWrapper(middlewares=[CollabAuthMiddleware])
-)
+admin_router = APIRouter()
 
 client_router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
