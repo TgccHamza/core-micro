@@ -8,6 +8,6 @@ class CollabAuthMiddleware(BaseHTTPMiddleware):
         print(f"Incoming request: {request.method} {request.url}")
         print("body request")
         body = await request.body()
-        print("Request body:", body)  # Log request body
+        print("Request body:", body[1:200])  # Log request body
 
         return call_next, request
