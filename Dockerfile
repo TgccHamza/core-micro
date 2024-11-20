@@ -13,7 +13,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Set working directory and change ownership
 WORKDIR /app
-RUN mkdir /app/tmp
+
+# Create necessary directories with proper permissions
+RUN mkdir /app/tmp && chmod 777 /app/tmp
+
+# Set temporary directory environment variable
+ENV TMPDIR=/app/tmp
+
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
