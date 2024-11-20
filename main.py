@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Depends, status
+from fastapi import FastAPI, Depends, status, UploadFile, File
 from app.routers import project
 from app.routers import arena
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -33,6 +33,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/upload-simple")
+def upload_fast(file: UploadFile = File(...)):
+    return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": f"file has been  uploaded"}
+        )
+
 
 
 @app.post("/server/migrate")
