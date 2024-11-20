@@ -64,9 +64,9 @@ spec:
             name: gamicore-config
         - secretRef:
             name: gamicore-secrets
-        securityContext:
-          allowPrivilegeEscalation: false
-#          readOnlyRootFilesystem: true
+#        securityContext:
+#          allowPrivilegeEscalation: false
+##          readOnlyRootFilesystem: true
 ---
 apiVersion: v1
 kind: Service
