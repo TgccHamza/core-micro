@@ -19,6 +19,7 @@ WORKDIR /app
 # Create necessary directories with proper permissions
 RUN mkdir tmp_uploads
 RUN chmod 777 tmp_uploads
+RUN mkdir /app/tmp && chmod 777 /app/tmp && touch /app/uvicorn_logs.log && chmod 777 /app/uvicorn_logs.log
 
 
 # Install system dependencies and cleanup in a single layer
