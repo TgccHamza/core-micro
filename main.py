@@ -2,6 +2,9 @@ import logging
 import os
 import sys
 
+from pydantic import BaseModel
+from starlette.responses import FileResponse
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Depends, status, UploadFile, File, HTTPException
@@ -24,7 +27,15 @@ import stat
 
 import tempfile
 
-logger = logging.getLogger('uvicorn.error')
+log_file = "uvicorn_logs.log"
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_file),  # Save logs to a file
+                        logging.StreamHandler()  # Also log to console
+                    ])
+logger = logging.getLogger(__name__)
+
 print("Change tmp folder for uploading file")
 #actualy he take the file in memory only
 tempfile.tempdir = "/app/tmp_uploads"
@@ -187,3 +198,64 @@ def custom_openapi(schema_tag):
         openapi_schema["paths"][f"{segment_micro}{path}"] = openapi_schema["paths"].pop(path)
 
     return openapi_schema
+
+
+# Pydantic model for the request body
+class DirectoryRequest(BaseModel):
+    directory_path: str
+
+# Function to get the file or directory permissions in a readable format
+def get_permissions(path: str) -> dict[str, bool]:
+    file_stat = os.stat(path)
+    permissions = {
+        'read': bool(file_stat.st_mode & stat.S_IRUSR),
+        'write': bool(file_stat.st_mode & stat.S_IWUSR),
+        'execute': bool(file_stat.st_mode & stat.S_IXUSR),
+    }
+    return permissions
+
+
+@app.post("/scan-directory")
+async def scan_directory(request: DirectoryRequest):
+    directory_path = request.directory_path
+
+    if not os.path.exists(directory_path):
+        logger.error(f"Directory {directory_path} does not exist.")
+        raise HTTPException(status_code=400, detail=f"Directory {directory_path} does not exist.")
+
+    if not os.path.isdir(directory_path):
+        logger.error(f"{directory_path} is not a valid directory.")
+        raise HTTPException(status_code=400, detail=f"{directory_path} is not a valid directory.")
+
+    try:
+        files_and_dirs = os.listdir(directory_path)
+    except PermissionError:
+        logger.error(f"Permission denied to access directory {directory_path}.")
+        raise HTTPException(status_code=403, detail="Permission denied to access this directory.")
+
+    results = []
+    for item in files_and_dirs:
+        item_path = os.path.join(directory_path, item)
+        permissions = get_permissions(item_path)
+        results.append({
+            "name": item,
+            "permissions": permissions
+        })
+
+    logger.info(f"Scanned directory: {directory_path}")
+    return {"directory": directory_path, "files_and_directories": results}
+
+
+# Endpoint to get the logs from the log file
+@app.get("/get-logs")
+async def get_logs():
+    if not os.path.exists(log_file):
+        logger.error(f"Log file {log_file} does not exist.")
+        raise HTTPException(status_code=404, detail="Log file not found.")
+
+    # Return the log file as response
+    try:
+        return FileResponse(log_file, media_type='text/plain', filename=log_file)
+    except Exception as e:
+        logger.error(f"Error reading log file: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error reading log file.")
