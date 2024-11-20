@@ -89,7 +89,8 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
 
 
 @admin_router.post("/modules/{module_id}/upload")
-async def upload_file(module_id: str, file: Annotated[bytes, File()], db: Session = Depends(get_db)):
+async def upload_file(module_id: str, file: UploadFile = File(description="Required file upload"), db: Session = Depends(get_db)):
+    print("Hello world upload file")
     file_data = file
     if not file_data or len(file_data) <= 0:
         return {"message": "No upload file sent"}
