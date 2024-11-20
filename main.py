@@ -18,9 +18,9 @@ from alembic import command
 
 import tempfile
 
-# print("Temp directory before changing it:", tempfile.gettempdir())
-# tempfile.tempdir = "/app/tmp"
-# print("Temp directory after changing it:", tempfile.gettempdir())
+print("Temp directory before changing it:", tempfile.gettempdir())
+tempfile.tempdir = "/app/tmp"
+print("Temp directory after changing it:", tempfile.gettempdir())
 
 # Base.metadata.create_all(bind=engine)
 

@@ -3,7 +3,6 @@ FROM python:3.11-slim-bullseye
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN mkdir /app/tmp
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -13,6 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Set working directory and change ownership
 WORKDIR /app
+RUN mkdir /app/tmp
 
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \
@@ -29,7 +29,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+#COPY . .
 #
 
 ## Change ownership of the application directory

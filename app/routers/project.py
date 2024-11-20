@@ -90,7 +90,6 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
 
 @admin_router.post("/modules/{module_id}/upload")
 async def upload_file(module_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    return {"message": "No upload file sent"}
     if not file:
         return {"message": "No upload file sent"}
 
@@ -150,7 +149,7 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Ses
     return services.list_favorites(db=db, user_id=user_id)
 
 
-@client_router.put("/game/{user_id}/favorites", response_model=list[ProjectClientWebResponse])
+@client_router.put("/game/{game_id}", response_model=list[ProjectClientWebResponse])
 def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     """Endpoint to list all favorite projects of a user."""
     user_id = jwt_claims.get("uid")
