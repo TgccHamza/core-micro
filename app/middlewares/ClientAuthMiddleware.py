@@ -10,29 +10,44 @@ class ClientAuthMiddleware(BaseHTTPMiddleware):
         self.secret_key = secret_key  # Optional, only for validation (you can skip if not needed)
 
     async def dispatch(self, request: Request, call_next):
-        # Read the Authorization header
-        auth_header = request.headers.get("Authorization")
+        # Default claims
         default_claims = {
             "uid": "93ca55e0-1394-4449-9a3f-2854f37b6b1d",
             "org_id": "3be3d36b-6bee-4b1a-9c0f-11092d28c1b3",
-            "orgs": [
-                "ocp"
-            ],
+            "orgs": ["ocp"],
             "username": "zak2",
             "user_type": "client",
-            "role": "player"
+            "role": "player",
         }
+
+        # Initialize claims with defaults
+        claims = default_claims
+
+        # Attempt to retrieve token from Authorization header
+        auth_header = request.headers.get("Authorization")
+        token = None
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split("Bearer ")[1]
-            try:
-                # Decode the JWT without validation
-                # You can provide `options={"verify_signature": False}` to skip verification
-                claims = jwt.decode(token, key=self.secret_key or "", options={"verify_signature": False})
-                # Attach claims to the request state for access in controllers
-                request.state.jwt_claims = claims
-            except jwt.JWTError as e:
-                request.state.jwt_claims = default_claims
-        else:
-            request.state.jwt_claims = default_claims
 
-        return call_next, request
+        # If no token in header, attempt to retrieve token from cookie
+        if not token:
+            token = request.cookies.get("access_token")
+
+        # Decode the token if found
+        if token:
+            try:
+                claims = jwt.decode(
+                    token,
+                    key=self.secret_key or "",
+                    options={"verify_signature": False},  # Disable signature verification for now
+                )
+            except jwt.JWTError:
+                # If decoding fails, fallback to default claims
+                claims = default_claims
+
+        # Attach claims to the request state for use in controllers
+        request.state.jwt_claims = claims
+
+        # Proceed with the request
+        response = await call_next(request)
+        return response
