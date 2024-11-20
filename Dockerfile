@@ -15,7 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Create necessary directories with proper permissions
-RUN mkdir /app/tmp && chmod 777 /app/tmp
+RUN mkdir /app/tmp && chmod 777 /app/tmp && touch /app/uvicorn_logs.log && chmod 777 /app/uvicorn_logs.log
 
 # Set temporary directory environment variable
 ENV TMPDIR=/app/tmp
