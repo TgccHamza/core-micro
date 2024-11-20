@@ -1,6 +1,6 @@
 # router/project.py
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Annotated
 
 from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
@@ -89,14 +89,12 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
 
 
 @admin_router.post("/modules/{module_id}/upload")
-async def upload_file(module_id: str, db: Session = Depends(get_db)):
-    print("Hello world upload file")
-    return {"message": "TOTO"}
-    if not file:
+async def upload_file(module_id: str, file: Annotated[bytes, File()], db: Session = Depends(get_db)):
+    file_data = file
+    if not file_data or len(file_data) <= 0:
         return {"message": "No upload file sent"}
 
     # Read the file data
-    file_data = await file.read()
 
     # Connect to the gRPC server
     grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
@@ -106,7 +104,7 @@ async def upload_file(module_id: str, db: Session = Depends(get_db)):
         # Update the stub to use the TemplateService
         stub = filegrpc.TemplateServiceStub(channel)
         # Create the request with the updated message type and fields
-        request = filepb2.UploadFileRequest(file_data=file_data, filename=file.filename)
+        request = filepb2.UploadFileRequest(file_data=file_data, filename=f"module_id.zip")
         response = stub.UploadFile(request)
         # Return the response data
         return services.set_template_module(db, module_id, response.file_id)
