@@ -167,8 +167,7 @@ def list_favorites(db: Session, user_id: str):
     """Retrieve all favorite projects for a user."""
     favorites = (db.query(models.Project)
                  .join(models.ProjectFavorite, models.ProjectFavorite.project_id == models.Project.id)
-                 .filter(
-        models.ProjectFavorite.user_id == user_id).all())
+                 .filter(models.ProjectFavorite.user_id == user_id).all())
     return favorites
 
 
