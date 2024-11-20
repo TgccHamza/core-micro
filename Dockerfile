@@ -3,7 +3,7 @@ FROM python:3.11-slim-bullseye
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN mkdir /app/tmp
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Set working directory and change ownership
 WORKDIR /app
-
+RUN mkdir /app/tmp
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
