@@ -208,10 +208,32 @@ def espaceAdmin(db, user_id, org_id):
     favorite_games = [
         FavoriteGameResponse(
             id=favorite_project.id,
-            game_id=favorite_project.project.id,
-            game_name=favorite_project.project.name,
-            client_name=favorite_project.project.client_name,
-            online_date=favorite_project.project.start_time
+            game_name=favorite_project.name,
+            client_name=favorite_project.client_name,
+            visibility=favorite_project.visibility,
+            online_date=favorite_project.start_time,
+            game_type=favorite_project.game_type,
+            playing_type=favorite_project.playing_type,
+            total_players=(db.query(models.ArenaSessionPlayers).filter(
+                models.ArenaSessionPlayers.module_id == favorite_project.module_game_id
+            ).count()),
+            groups=[
+                GroupResponse(
+                    id=group.id,
+                    name=group.name,
+                    managers=[ManagerResponse(
+                        id=manager.user_id,
+                        email=manager.user_email,
+                        first_name=manager.first_name,
+                        last_name=manager.last_name,
+                        picture=manager.picture,
+                    ) for manager in group.managers],
+                    arenas=[ArenaResponse(
+                        id=arena.id,
+                        name=arena.name
+                    ) for arena in group.arenas]
+                ) for group in favorite_project.groups
+            ]
         ) for favorite_project in favorite_projects if favorite_project.project
     ]
 

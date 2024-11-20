@@ -56,10 +56,14 @@ class RecentGameResponse(BaseModel):
 
 class FavoriteGameResponse(BaseModel):
     id: str
-    game_id: str
     game_name: Optional[str] = None
     client_name: Optional[str] = None
+    visibility: Optional[str] = None
     online_date: Optional[datetime] = None
+    game_type: Optional[GameType] = None
+    playing_type: Optional[PlayingType] = None
+    total_players: Optional[int] = 0
+    groups: List[GroupResponse] = []
 
 
 class AdminSpaceClientResponse(BaseModel):
