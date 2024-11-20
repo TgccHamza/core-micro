@@ -74,6 +74,11 @@ metadata:
   name: gamicore
   labels:
     app: gamicore
+  annotations:
+    grpc.kubernetes.io/timeout-seconds: "120"
+    grpc.kubernetes.io/keepalive-time-seconds: "60"
+    grpc.kubernetes.io/keepalive-timeout-seconds: "20"
+    grpc.kubernetes.io/max-message-size: "104857600"  # 100MB in bytes
 spec:
   type: ClusterIP
   ports:
@@ -85,5 +90,6 @@ spec:
     targetPort: grpc
     protocol: TCP
     name: grpc
+    appProtocol: grpc
   selector:
     app: gamicore
