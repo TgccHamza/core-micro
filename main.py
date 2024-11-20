@@ -15,6 +15,7 @@ from sqlalchemy import text
 from app.database import get_db, DATABASE_URL
 from alembic.config import Config
 from alembic import command
+from fastapi.middleware.cors import CORSMiddleware
 
 import tempfile
 
@@ -25,6 +26,14 @@ import tempfile
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/server/migrate")
