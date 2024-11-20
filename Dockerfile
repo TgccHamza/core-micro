@@ -15,10 +15,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Create necessary directories with proper permissions
-RUN mkdir /app/tmp && chmod 777 /app/tmp
+RUN mkdir /app/tmp_uploads && chmod 777 /app/tmp_uploads
 
-# Set temporary directory environment variable
-ENV TMPDIR=/app/tmp
 
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \

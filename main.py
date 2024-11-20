@@ -17,15 +17,11 @@ from alembic.config import Config
 from alembic import command
 from fastapi.middleware.cors import CORSMiddleware
 
-# print("Temp directory before changing it:", tempfile.gettempdir())
-# tempfile.tempdir = "/app/tmp"
-# print("Temp directory after changing it:", tempfile.gettempdir())
 
-# Base.metadata.create_all(bind=engine)
 import tempfile
 
 print("Temp directory before changing it:", tempfile.gettempdir())
-tempfile.tempdir = "/app/tmp"
+tempfile.tempdir = "/app/tmp_uploads"
 print("Temp directory after changing it:", tempfile.gettempdir())
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
