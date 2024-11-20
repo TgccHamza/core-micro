@@ -2,12 +2,11 @@ import logging
 import os
 import sys
 
-from pydantic import BaseModel
 from starlette.responses import FileResponse
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Depends, status, UploadFile, File, HTTPException
+from fastapi import FastAPI, Depends, status, HTTPException
 from app.routers import project
 from app.routers import arena
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -21,9 +20,7 @@ from alembic.config import Config
 from alembic import command
 from fastapi.middleware.cors import CORSMiddleware
 
-from pathlib import Path
 import os
-import stat
 
 import tempfile
 
@@ -50,40 +47,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/create-folder")
-async def create_folder():
-    try:
-        # Static folder path
-        folder_path = Path("/app/tmp_uploads")
-
-        # Create the folder if it doesn't exist
-        folder_path.mkdir(parents=True, exist_ok=True)
-
-        # Set full permissions (777 equivalent)
-        os.chmod(folder_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-
-        # Get folder metadata
-        folder_stat = folder_path.stat()
-        folder_logs = {
-            "folder_path": str(folder_path.resolve()),
-            "permissions": oct(folder_stat.st_mode)[-3:],  # Last 3 digits of octal permission
-            "creation_time": folder_stat.st_ctime,
-            "is_directory": folder_path.is_dir()
-        }
-
-        return {"message": "Folder created successfully", "logs": folder_logs}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating folder: {str(e)}")
-
-@app.post("/upload-simple")
-def upload_fast(file: UploadFile = File(...)):
-    return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": f"file has been  uploaded"}
-        )
-
-
+# @app.post("/create-folder")
+# async def create_folder():
+#     try:
+#         # Static folder path
+#         folder_path = Path("/app/tmp_uploads")
+#
+#         # Create the folder if it doesn't exist
+#         folder_path.mkdir(parents=True, exist_ok=True)
+#
+#         # Set full permissions (777 equivalent)
+#         os.chmod(folder_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+#
+#         # Get folder metadata
+#         folder_stat = folder_path.stat()
+#         folder_logs = {
+#             "folder_path": str(folder_path.resolve()),
+#             "permissions": oct(folder_stat.st_mode)[-3:],  # Last 3 digits of octal permission
+#             "creation_time": folder_stat.st_ctime,
+#             "is_directory": folder_path.is_dir()
+#         }
+#
+#         return {"message": "Folder created successfully", "logs": folder_logs}
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error creating folder: {str(e)}")
 
 @app.post("/server/migrate")
 async def run_migrations():
@@ -200,50 +188,54 @@ def custom_openapi(schema_tag):
     return openapi_schema
 
 
-# Pydantic model for the request body
-class DirectoryRequest(BaseModel):
-    directory_path: str
+# from pathlib import Path
+# import stat
+# from pydantic import BaseModel
 
-# Function to get the file or directory permissions in a readable format
-def get_permissions(path: str) -> dict[str, bool]:
-    file_stat = os.stat(path)
-    permissions = {
-        'read': bool(file_stat.st_mode & stat.S_IRUSR),
-        'write': bool(file_stat.st_mode & stat.S_IWUSR),
-        'execute': bool(file_stat.st_mode & stat.S_IXUSR),
-    }
-    return permissions
-
-
-@app.post("/scan-directory")
-async def scan_directory(request: DirectoryRequest):
-    directory_path = request.directory_path
-
-    if not os.path.exists(directory_path):
-        logger.error(f"Directory {directory_path} does not exist.")
-        raise HTTPException(status_code=400, detail=f"Directory {directory_path} does not exist.")
-
-    if not os.path.isdir(directory_path):
-        logger.error(f"{directory_path} is not a valid directory.")
-        raise HTTPException(status_code=400, detail=f"{directory_path} is not a valid directory.")
-
-    try:
-        files_and_dirs = os.listdir(directory_path)
-    except PermissionError:
-        logger.error(f"Permission denied to access directory {directory_path}.")
-        raise HTTPException(status_code=403, detail="Permission denied to access this directory.")
-
-    results = []
-    for item in files_and_dirs:
-        item_path = os.path.join(directory_path, item)
-        permissions = get_permissions(item_path)
-        results.append({
-            "name": item,
-            "permissions": permissions
-        })
-
-    logger.info(f"Scanned directory: {directory_path}")
-    return {"directory": directory_path, "files_and_directories": results}
+# # Pydantic model for the request body
+# class DirectoryRequest(BaseModel):
+#     directory_path: str
+#
+# # Function to get the file or directory permissions in a readable format
+# def get_permissions(path: str) -> dict[str, bool]:
+#     file_stat = os.stat(path)
+#     permissions = {
+#         'read': bool(file_stat.st_mode & stat.S_IRUSR),
+#         'write': bool(file_stat.st_mode & stat.S_IWUSR),
+#         'execute': bool(file_stat.st_mode & stat.S_IXUSR),
+#     }
+#     return permissions
+#
+#
+# @app.post("/scan-directory")
+# async def scan_directory(request: DirectoryRequest):
+#     directory_path = request.directory_path
+#
+#     if not os.path.exists(directory_path):
+#         logger.error(f"Directory {directory_path} does not exist.")
+#         raise HTTPException(status_code=400, detail=f"Directory {directory_path} does not exist.")
+#
+#     if not os.path.isdir(directory_path):
+#         logger.error(f"{directory_path} is not a valid directory.")
+#         raise HTTPException(status_code=400, detail=f"{directory_path} is not a valid directory.")
+#
+#     try:
+#         files_and_dirs = os.listdir(directory_path)
+#     except PermissionError:
+#         logger.error(f"Permission denied to access directory {directory_path}.")
+#         raise HTTPException(status_code=403, detail="Permission denied to access this directory.")
+#
+#     results = []
+#     for item in files_and_dirs:
+#         item_path = os.path.join(directory_path, item)
+#         permissions = get_permissions(item_path)
+#         results.append({
+#             "name": item,
+#             "permissions": permissions
+#         })
+#
+#     logger.info(f"Scanned directory: {directory_path}")
+#     return {"directory": directory_path, "files_and_directories": results}
 
 
 # Endpoint to get the logs from the log file

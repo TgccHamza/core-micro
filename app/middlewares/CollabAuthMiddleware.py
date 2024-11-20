@@ -6,6 +6,5 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class CollabAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         print(f"Incoming request: {request.method} {request.url}")
-        print("body request")
 
         return call_next, request

@@ -186,58 +186,64 @@ def espaceAdmin(db, user_id, org_id):
         models.Project.start_time >= current_time,
         models.Project.start_time <= one_month_later
     ).all()
-
-    events = [EventGameResponse(
-        id=project.id,
-        game_name=project.name,
-        client_name=project.client_name,
-        visibility=project.visibility,
-        online_date=project.start_time,
-        game_type=project.game_type,
-        playing_type=project.playing_type,
-        total_players=(db.query(models.ArenaSessionPlayers).filter(
-            models.ArenaSessionPlayers.module_id == project.module_game_id
-        ).count()),
-        tags=[x.strip() for x in project.tags.split(",")]
-    ) for project in projects]
+    events = []
+    project_ids = []
+    for project in projects:
+        project_ids.append(project.id)
+        events.append(EventGameResponse(
+            id=project.id,
+            game_name=project.name,
+            client_name=project.client_name,
+            visibility=project.visibility,
+            online_date=project.start_time,
+            game_type=project.game_type,
+            playing_type=project.playing_type,
+            total_players=(db.query(models.ArenaSessionPlayers).filter(
+                models.ArenaSessionPlayers.module_id == project.module_game_id
+            ).count()),
+            tags=[x.strip() for x in project.tags.split(",")]
+        ))
 
     favorite_projects = db.query(models.ProjectFavorite).filter(
         models.ProjectFavorite.user_id == user_id).all()  # Example query
+    favorite_games = []
+
+    for favorite_project in favorite_projects:
+        project_ids.append(favorite_project.project.id)
+        favorite_games.append(
+            FavoriteGameResponse(
+                id=favorite_project.project.id,
+                game_name=favorite_project.project.name,
+                client_name=favorite_project.project.client_name,
+                visibility=favorite_project.project.visibility,
+                online_date=favorite_project.project.start_time,
+                game_type=favorite_project.project.game_type,
+                playing_type=favorite_project.project.playing_type,
+                total_players=(db.query(models.ArenaSessionPlayers).filter(
+                    models.ArenaSessionPlayers.module_id == favorite_project.project.module_game_id
+                ).count()),
+                groups=[
+                    GroupResponse(
+                        id=group.id,
+                        name=group.name,
+                        managers=[ManagerResponse(
+                            id=manager.user_id,
+                            email=manager.user_email,
+                            first_name=manager.first_name,
+                            last_name=manager.last_name,
+                            picture=manager.picture,
+                        ) for manager in group.managers],
+                        arenas=[ArenaResponse(
+                            id=arena.id,
+                            name=arena.name
+                        ) for arena in group.arenas]
+                    ) for group in favorite_project.project.groups
+                ]
+            ))
+
     recent_projects = db.query(models.Project).filter(
         models.Project.organisation_code == org_id
     ).order_by(models.Project.created_at.desc()).limit(5).all()
-
-    favorite_games = [
-        FavoriteGameResponse(
-            id=favorite_project.project.id,
-            game_name=favorite_project.project.name,
-            client_name=favorite_project.project.client_name,
-            visibility=favorite_project.project.visibility,
-            online_date=favorite_project.project.start_time,
-            game_type=favorite_project.project.game_type,
-            playing_type=favorite_project.project.playing_type,
-            total_players=(db.query(models.ArenaSessionPlayers).filter(
-                models.ArenaSessionPlayers.module_id == favorite_project.project.module_game_id
-            ).count()),
-            groups=[
-                GroupResponse(
-                    id=group.id,
-                    name=group.name,
-                    managers=[ManagerResponse(
-                        id=manager.user_id,
-                        email=manager.user_email,
-                        first_name=manager.first_name,
-                        last_name=manager.last_name,
-                        picture=manager.picture,
-                    ) for manager in group.managers],
-                    arenas=[ArenaResponse(
-                        id=arena.id,
-                        name=arena.name
-                    ) for arena in group.arenas]
-                ) for group in favorite_project.project.groups
-            ]
-        ) for favorite_project in favorite_projects if favorite_project.project
-    ]
 
     recent_games = [
         RecentGameResponse(
@@ -360,6 +366,7 @@ def gameView(db, org_id, game_id):
         tags=[x.strip() for x in game.tags.split(",")]
     )
 
+
 def config_client_game(db, org_id, project_id):
     project = db.query(models.Project).filter(models.Project.organisation_code == org_id,
                                               models.Project.id == project_id).first()
@@ -372,9 +379,11 @@ def config_client_game(db, org_id, project_id):
 
     return project
 
+
 def update_client_game(db: Session, org_id: str, project_id: str, update_data: GameUpdateRequest):
     # Fetch the project by ID
-    project = db.query(models.Project).filter(models.Project.organisation_code == org_id, models.Project.id == project_id).first()
+    project = db.query(models.Project).filter(models.Project.organisation_code == org_id,
+                                              models.Project.id == project_id).first()
 
     if not project:
         raise HTTPException(

@@ -164,9 +164,9 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Ses
 
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
-def update_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     """
-    Endpoint to update a game project.
+    Endpoint to get the game configuration.
     """
     org_id = jwt_claims.get("org_id")
 
