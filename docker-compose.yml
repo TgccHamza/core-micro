@@ -2,9 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: local.Dockerfile
-    volumes:
-      - .:/app  # Bind mount for local development
+      dockerfile: Dockerfile
     ports:
       - "8001:8000"
     depends_on:

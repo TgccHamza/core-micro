@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
-
-from sqlalchemy import Column, String, Enum, Integer, DateTime
+from sqlalchemy import Column, String, Enum, Integer, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus, GameType, PlayingType, \
@@ -14,6 +13,7 @@ class Project(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
     description = Column(String(255), index=True)
+    game_trailer_url = Column(String(255), index=True)
     db_index = Column(String(36), index=True)
     slug = Column(String(255), unique=True, index=True)
     visibility = Column(String(50), default="public")  # Default visibility is public
@@ -31,12 +31,29 @@ class Project(Base):
     tags = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())
 
+    allow_comments = Column(Boolean, default=True)  # Allow or disable comments
+    replayable = Column(Boolean, default=True)  # Is the game replayable
+    public_leaderboard = Column(Boolean, default=False)  # Show public leaderboards
+    timezone = Column(String(50), nullable=True)  # Store timezone information
+    restrict_playing_hours = Column(Boolean, default=False)  # Whether playing hours are restricted
+    playing_start_time = Column(DateTime, nullable=True)  # Start time if restricted
+    playing_end_time = Column(DateTime, nullable=True)  # End time if restricted
+
+
     # Updated relationship with primaryjoin
     modules = relationship(
         "ProjectModule",
         primaryjoin="Project.id == ProjectModule.project_id",
         back_populates="project",
         foreign_keys='ProjectModule.project_id',
+        viewonly=True
+    )
+
+    comments = relationship(
+        "ProjectComment",
+        primaryjoin="Project.id == ProjectComment.project_id",
+        back_populates="project",
+        foreign_keys='ProjectComment.project_id',
         viewonly=True
     )
 
@@ -55,6 +72,24 @@ class Project(Base):
         viewonly=True
     )
 
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String(36), nullable=True)
+    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
+    comment_text = Column(Text, nullable=True)  # The actual comment
+    visible = Column(Boolean, default=True)  # Whether the comment is visible
+    created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())  # Timestamp for when the comment was created
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.now)  # Timestamp for last update
+
+    # Relationships
+    project = relationship(
+        "Project",
+        foreign_keys=[project_id],
+        primaryjoin="ProjectComment.project_id == Project.id",
+        viewonly=True, back_populates="comments"
+    )
 
 class ProjectModule(Base):
     __tablename__ = "project_modules"
@@ -101,6 +136,7 @@ class Group(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     organisation_code = Column(String(36), nullable=True, index=True)
+    activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
 
     # Relationships
     managers = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id",
@@ -207,6 +243,7 @@ class ArenaSession(Base):
     access_status = Column(Enum(AccessStatus), nullable=False)
     session_status = Column(Enum(SessionStatus), nullable=False)
     view_access = Column(Enum(ViewAccess), nullable=False)
+    activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
     super_game_master_id = Column(String(36), nullable=True)
     player_module_id = Column(String(36), nullable=True)
     gamemaster_module_id = Column(String(36), nullable=True)
