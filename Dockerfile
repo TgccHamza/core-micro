@@ -3,7 +3,7 @@ FROM python:3.11-slim-bullseye
 
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-
+RUN mkdir /app/tmp
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

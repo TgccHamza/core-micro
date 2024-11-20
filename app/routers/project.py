@@ -148,3 +148,11 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Ses
     """Endpoint to list all favorite projects of a user."""
     user_id = jwt_claims.get("uid")
     return services.list_favorites(db=db, user_id=user_id)
+
+
+@client_router.put("/game/{user_id}/favorites", response_model=list[ProjectClientWebResponse])
+def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+    """Endpoint to list all favorite projects of a user."""
+    user_id = jwt_claims.get("uid")
+    return services.list_favorites(db=db, user_id=user_id)
+
