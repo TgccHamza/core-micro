@@ -207,15 +207,15 @@ def espaceAdmin(db, user_id, org_id):
 
     favorite_games = [
         FavoriteGameResponse(
-            id=favorite_project.id,
-            game_name=favorite_project.name,
-            client_name=favorite_project.client_name,
-            visibility=favorite_project.visibility,
-            online_date=favorite_project.start_time,
-            game_type=favorite_project.game_type,
-            playing_type=favorite_project.playing_type,
+            id=favorite_project.project.id,
+            game_name=favorite_project.project.name,
+            client_name=favorite_project.project.client_name,
+            visibility=favorite_project.project.visibility,
+            online_date=favorite_project.project.start_time,
+            game_type=favorite_project.project.game_type,
+            playing_type=favorite_project.project.playing_type,
             total_players=(db.query(models.ArenaSessionPlayers).filter(
-                models.ArenaSessionPlayers.module_id == favorite_project.module_game_id
+                models.ArenaSessionPlayers.module_id == favorite_project.project.module_game_id
             ).count()),
             groups=[
                 GroupResponse(
@@ -232,7 +232,7 @@ def espaceAdmin(db, user_id, org_id):
                         id=arena.id,
                         name=arena.name
                     ) for arena in group.arenas]
-                ) for group in favorite_project.groups
+                ) for group in favorite_project.project.groups
             ]
         ) for favorite_project in favorite_projects if favorite_project.project
     ]
