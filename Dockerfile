@@ -15,7 +15,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Create necessary directories with proper permissions
-RUN mkdir /app/tmp_uploads && chmod 777 /app/tmp_uploads
+RUN mkdir tmp_uploads
+RUN chmod 777 tmp_uploads
 
 
 # Install system dependencies and cleanup in a single layer
@@ -54,4 +55,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Use a non-root user to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--no-access-log", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--reload"]

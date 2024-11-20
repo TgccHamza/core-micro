@@ -27,6 +27,10 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create necessary directories with proper permissions
+RUN mkdir tmp_uploads
+RUN chmod 777 tmp_uploads
+
 # Copy application code
 COPY . .
 #
@@ -45,4 +49,4 @@ COPY . .
 EXPOSE 8000
 
 # Use a non-root user to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--no-access-log", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--reload"]

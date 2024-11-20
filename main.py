@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -20,9 +21,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import tempfile
 
-# print("Temp directory before changing it:", tempfile.gettempdir())
-# tempfile.tempdir = "/app/tmp_uploads"
-# # print("Temp directory after changing it:", tempfile.gettempdir())
+logger = logging.getLogger('uvicorn.error')
+print("Change tmp folder for uploading file")
+#actualy he take the file in memory only
+tempfile.tempdir = "/app/tmp_uploads"
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -118,13 +120,12 @@ app.include_router(arena.router, tags=["Orchestrator Apis", "Client Apis"])
 
 @app.get("/openapi-client.json", include_in_schema=False)
 async def get_admin_openapi_json():
-    return custom_openapi(['client'])
+    return custom_openapi('Client Apis')
 
 
 # Custom endpoint for Swagger UI
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
-    app.openapi_schema = custom_openapi(["client"])
     segment_micro = os.getenv("SEGMENT_MICRO", "")
     if segment_micro != "" and not segment_micro.startswith("/"):
         segment_micro = f"/{segment_micro}"
@@ -138,12 +139,18 @@ async def custom_swagger_ui_html():
 
 
 # Custom OpenAPI Schemas for Each Category
-def custom_openapi(schema_tags):
+def custom_openapi(schema_tag):
+    routes = []
+    for route in app.routes:
+        if schema_tag in route.tags:
+            route.tags = [schema_tag]
+            routes.append(route)
+
     openapi_schema = get_openapi(
         title="Custom API",
         version="1.0.0",
         description="Custom split OpenAPI schema for admin, client, and server",
-        routes=[route for route in app.routes if any(tag in schema_tags for tag in route.tags)]
+        routes=routes
     )
 
     segment_micro = os.getenv("SEGMENT_MICRO", "")
