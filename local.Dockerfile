@@ -33,14 +33,14 @@ COPY . .
 #
 
 ## Change ownership of the application directory
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
-# Create and use a virtual environment
-RUN python -m venv /app/venv
-ENV PATH="/app/venv/bin:$PATH"
+#RUN chown -R appuser:appuser /app
+#
+## Switch to non-root user
+#USER appuser
+#
+## Create and use a virtual environment
+#RUN python -m venv /app/venv
+#ENV PATH="/app/venv/bin:$PATH"
 
 # Expose the port that FastAPI runs on
 EXPOSE 8000
