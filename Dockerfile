@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Use a non-root user to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--limit-max-request-size", "209715200", "--no-access-log", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--no-access-log", "--reload"]

@@ -95,9 +95,9 @@ async def health_game(db: Session = Depends(get_db)):
         )
 
 
-app.include_router(project.client_router, tags=["projects", "client"])
-app.include_router(project.admin_router, tags=["projects" ])
-app.include_router(arena.router, tags=["arenas", "client"])
+app.include_router(project.client_router, tags=["Client Apis"])
+app.include_router(project.admin_router, tags=["Orchestrator Apis"])
+app.include_router(arena.router, tags=["Orchestrator Apis", "Client Apis"])
 
 
 @app.get("/openapi-client.json", include_in_schema=False)
