@@ -94,11 +94,11 @@ async def upload_file(module_id: str, file: UploadFile = File(description="Requi
     try:
 
         print("Hello world upload file")
-        file_data = file
-        if not file_data or len(file_data) <= 0:
+        if not file:
             return {"message": "No upload file sent"}
 
         # Read the file data
+        file_data = await file.read()
 
         # Connect to the gRPC server
         grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
