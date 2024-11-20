@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 
 print("Temp directory before changing it:", tempfile.gettempdir())
-tempfile.tempdir = "path/to/tempdir/here"
+tempfile.tempdir = "/app/app/tmp"
 print("Temp directory after changing it:", tempfile.gettempdir())
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
