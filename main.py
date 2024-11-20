@@ -4,7 +4,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Depends, status, UploadFile, File
+from fastapi import FastAPI, Depends, status, UploadFile, File, HTTPException
 from app.routers import project
 from app.routers import arena
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -18,6 +18,9 @@ from alembic.config import Config
 from alembic import command
 from fastapi.middleware.cors import CORSMiddleware
 
+from pathlib import Path
+import os
+import stat
 
 import tempfile
 
@@ -35,6 +38,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/create-folder")
+async def create_folder():
+    try:
+        # Static folder path
+        folder_path = Path("/app/tmp_uploads")
+
+        # Create the folder if it doesn't exist
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+        # Set full permissions (777 equivalent)
+        os.chmod(folder_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
+        # Get folder metadata
+        folder_stat = folder_path.stat()
+        folder_logs = {
+            "folder_path": str(folder_path.resolve()),
+            "permissions": oct(folder_stat.st_mode)[-3:],  # Last 3 digits of octal permission
+            "creation_time": folder_stat.st_ctime,
+            "is_directory": folder_path.is_dir()
+        }
+
+        return {"message": "Folder created successfully", "logs": folder_logs}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating folder: {str(e)}")
 
 @app.post("/upload-simple")
 def upload_fast(file: UploadFile = File(...)):

@@ -4,8 +4,10 @@ from logging import Manager
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
+from starlette import status
+
 from app import models
-from app.models import Arena
+from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
 from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
@@ -357,3 +359,62 @@ def gameView(db, org_id, game_id):
         ).count()),
         tags=[x.strip() for x in game.tags.split(",")]
     )
+
+def config_client_game(db, org_id, project_id):
+    project = db.query(models.Project).filter(models.Project.organisation_code == org_id,
+                                              models.Project.id == project_id).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    return project
+
+def update_client_game(db: Session, org_id: str, project_id: str, update_data: GameUpdateRequest):
+    # Fetch the project by ID
+    project = db.query(models.Project).filter(models.Project.organisation_code == org_id, models.Project.id == project_id).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Update fields if they are provided in the update_data
+    if update_data.name is not None:
+        project.name = update_data.name
+    if update_data.description is not None:
+        project.description = update_data.description
+    if update_data.game_trailer_url is not None:
+        project.game_trailer_url = update_data.game_trailer_url
+    if update_data.visibility is not None:
+        project.visibility = update_data.visibility
+    if update_data.activation_status is not None:
+        project.activation_status = update_data.activation_status
+    if update_data.client_name is not None:
+        project.client_name = update_data.client_name
+    if update_data.tags is not None:
+        project.tags = update_data.tags
+    if update_data.allow_comments is not None:
+        project.allow_comments = update_data.allow_comments
+    if update_data.replayable is not None:
+        project.replayable = update_data.replayable
+    if update_data.public_leaderboard is not None:
+        project.public_leaderboard = update_data.public_leaderboard
+    if update_data.timezone is not None:
+        project.timezone = update_data.timezone
+    if update_data.restrict_playing_hours is not None:
+        project.restrict_playing_hours = update_data.restrict_playing_hours
+    if update_data.playing_start_time is not None:
+        project.playing_start_time = update_data.playing_start_time
+    if update_data.playing_end_time is not None:
+        project.playing_end_time = update_data.playing_end_time
+
+    # Commit changes to the database
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+
+    return project

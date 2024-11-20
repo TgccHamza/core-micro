@@ -10,12 +10,14 @@ from app.helpers import get_jwt_claims
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.CollabAuthMiddleware import CollabAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
+from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
 from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.EspaceAdminClientResponse import AdminSpaceClientResponse
 from app.payloads.response.FavoriteResponse import FavoriteResponse
+from app.payloads.response.GameConfigResponse import GameConfigResponse
 from app.payloads.response.GameViewClientResponse import GameViewClientResponse
 from app.payloads.response.ModuleAdminResponse import ModuleAdminResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
@@ -25,6 +27,8 @@ from app.routers import filegrpc
 from app.database import get_db
 from app.services import project as services
 import grpc
+
+from app.services.project import update_client_game, config_client_game
 
 admin_router = APIRouter(
     route_class=middlewareWrapper(middlewares=[CollabAuthMiddleware])
@@ -90,7 +94,8 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
 
 
 @admin_router.post("/modules/{module_id}/upload")
-async def upload_file(module_id: str, file: UploadFile = File(description="Required file upload"), db: Session = Depends(get_db)):
+async def upload_file(module_id: str, file: UploadFile = File(description="Required file upload"),
+                      db: Session = Depends(get_db)):
     try:
         print("Upload file begin upload")
         if not file:
@@ -117,6 +122,7 @@ async def upload_file(module_id: str, file: UploadFile = File(description="Requi
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await file.close()
+
 
 @client_router.get("/espace-admin", response_model=AdminSpaceClientResponse)
 def admin_space(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
@@ -157,9 +163,42 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Ses
     return services.list_favorites(db=db, user_id=user_id)
 
 
-@client_router.put("/game/{game_id}", response_model=list[ProjectClientWebResponse])
-def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
-    """Endpoint to list all favorite projects of a user."""
-    user_id = jwt_claims.get("uid")
-    return services.list_favorites(db=db, user_id=user_id)
+@client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
+def update_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+    """
+    Endpoint to update a game project.
+    """
+    org_id = jwt_claims.get("org_id")
 
+    if not org_id:
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing org ID in JWT claims.")
+
+    config_project = config_client_game(db=db, org_id=org_id, project_id=game_id)
+
+    if not config_project:
+        raise HTTPException(status_code=404, detail="Game not found or could not be updated.")
+
+    return config_project
+
+
+@client_router.put("/game/{game_id}", response_model=GameConfigResponse)
+def update_game(
+        game_id: str,
+        update_data: GameUpdateRequest,
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+        db: Session = Depends(get_db),
+):
+    """
+    Endpoint to update a game project.
+    """
+    org_id = jwt_claims.get("org_id")
+
+    if not org_id:
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing org ID in JWT claims.")
+
+    updated_project = update_client_game(db=db, org_id=org_id, project_id=game_id, update_data=update_data)
+
+    if not updated_project:
+        raise HTTPException(status_code=404, detail="Game not found or could not be updated.")
+
+    return updated_project
