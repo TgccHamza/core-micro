@@ -16,6 +16,7 @@ from app.payloads.request.GroupCreateRequest import GroupCreateRequest
 from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
 from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
 from app.payloads.request.SessionConfigRequest import SessionConfigRequest
+from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop
 from app.payloads.response.ArenaResponseTop import ArenaResponseTop
 from app.payloads.response.GroupClientResponse import GroupClientResponse
 from app.payloads.response.InvitePlayerResponse import InvitePlayerResponse
@@ -84,7 +85,7 @@ def create_arena(arena: ArenaCreateRequest, db: Session = Depends(get_db),
     return service.create_arena(db, arena, org_id)
 
 
-@router.get("/arenas", response_model=list[ArenaResponseTop])
+@router.get("/arenas", response_model=list[ArenaListResponseTop])
 def list_arenas(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     return service.get_arenas(db, org_id)

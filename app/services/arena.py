@@ -15,6 +15,8 @@ from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
 from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
 from app.payloads.request.SessionConfigRequest import SessionConfigRequest
 from app.payloads.request.SessionUpdateRequest import SessionUpdateRequest
+from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, ArenaMembers, ArenaListGroupClientResponse, \
+    ArenaListGroupUserClientResponse
 from app.payloads.response.SessionResponse import SessionCreateRequest
 
 
@@ -99,7 +101,42 @@ def create_arena(db: Session, arena: ArenaCreateRequest, org_id: str):
 
 # Get all Arenas with their associated groups
 def get_arenas(db: Session, org_id: str):
-    return db.query(models.Arena).filter(models.Arena.organisation_code == org_id).all()
+    arenas_data = db.query(models.Arena).filter(models.Arena.organisation_code == org_id).all()
+    arenas = []
+    for db_arena in arenas_data:
+        arena = ArenaListResponseTop(id=db_arena.id,
+                                     name=db_arena.name,
+                                     groups=[],
+                                     players=[])
+        groups = []
+        for db_group in db_arena.groups:
+            group = ArenaListGroupClientResponse(
+                id=db_group.id,
+                name=db_group.name,
+                managers=[ArenaListGroupUserClientResponse(
+                    user_id=manager.user_id,
+                    user_email=manager.user_email,
+                    user_name=f"{manager.first_name} {manager.last_name}",
+                    picture=manager.picture
+                ) for manager in db_group.managers]
+            )
+            groups.append(group)
+        arena.groups = groups
+        dict_players = set()
+        players = []
+        for session in db_arena.sessions:
+            for player in session.players:
+                if player.user_email not in dict_players:
+                    dict_players.add(player.user_email)
+                    players.append(ArenaMembers(
+                        user_id=player.user_id,
+                        user_email=player.user_email,
+                        user_name=player.user_name,
+                        picture=None
+                    ))
+        arena.players = players
+        arenas.append(arena)
+    return arenas
 
 
 # Get a specific Arena by ID
@@ -220,6 +257,7 @@ def update_session(db: Session, session_id: str, session: SessionUpdateRequest, 
     db.commit()
     return db_session
 
+
 def config_session(db: Session, session_id: str, session: SessionConfigRequest, org_id: str):
     db_session = get_session(db, session_id, org_id=org_id)
     if not db_session:
@@ -311,7 +349,6 @@ async def invite_players(
 
     db.commit()  # Commit the new players to the database
     return {"message": "Emails queued for sending"}
-
 
 
 async def remove_invited_players(
