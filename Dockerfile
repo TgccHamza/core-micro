@@ -11,44 +11,41 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DEBIAN_FRONTEND=noninteractive
 
-USER root
-
-# Set working directory and change ownership
+# Set working directory
 WORKDIR /app
 
-# Create necessary directories with proper permissions
-RUN mkdir tmp_uploads
-RUN chmod 777 tmp_uploads
-RUN mkdir /app/tmp && chmod 777 /app/tmp && touch /app/uvicorn_logs.log && chmod 777 /app/uvicorn_logs.log
-
+# Create necessary directories and files with proper permissions
+RUN mkdir -p /app/tmp_uploads /app/tmp \
+&& touch /app/uvicorn_logs.log \
+&& chown -R appuser:appuser /app \
+&& chmod 755 /app \
+&& chmod -R 755 /app/tmp_uploads /app/tmp \
+&& chmod 644 /app/uvicorn_logs.log
 
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+&& apt-get install -y --no-install-recommends \
         curl \
         gcc \
         libc6-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir pip-tools
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* \
+&& pip install --no-cache-dir pip-tools
 
-# Copy and install requirements first for better layer caching
-COPY requirements.txt .
+# Copy requirements and install dependencies
+COPY --chown=appuser:appuser requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
-#
+# Copy application code and set ownership
+COPY --chown=appuser:appuser . .
 
-## Change ownership of the application directory
-#RUN chown -R appuser:appuser /app
+# Create and use a virtual environment
+RUN python -m venv /app/venv \
+&& chown -R appuser:appuser /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-## Switch to non-root user
-#USER appuser
-#
-## Create and use a virtual environment
-#RUN python -m venv /app/venv
-#ENV PATH="/app/venv/bin:$PATH"
+# Switch to non-root user
+USER appuser
 
 # Expose the port that FastAPI runs on
 EXPOSE 8000
@@ -57,5 +54,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Use a non-root user to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0",  "--port", "8000", "--reload"]
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

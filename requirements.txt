@@ -10,3 +10,4 @@ grpcio
 grpcio-tools
 python-multipart
 python-jose
+httpx

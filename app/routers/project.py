@@ -5,6 +5,7 @@ from typing import Dict, Any, Annotated
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
+from starlette import status
 
 from app.helpers import get_jwt_claims
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
@@ -13,6 +14,8 @@ from app.middlewares.MiddlewareWrapper import middlewareWrapper
 from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
+from app.payloads.request.ProjectCommentCreateRequest import ProjectCommentCreateRequest
+from app.payloads.request.ProjectCommentUpdateRequest import ProjectCommentUpdateRequest
 from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.EspaceAdminClientResponse import AdminSpaceClientResponse
@@ -22,6 +25,7 @@ from app.payloads.response.GameViewClientResponse import GameViewClientResponse
 from app.payloads.response.ModuleAdminResponse import ModuleAdminResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectClientWebResponse import ProjectClientWebResponse
+from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
 from app.routers import filepb2
 from app.routers import filegrpc
 from app.database import get_db
@@ -202,3 +206,43 @@ def update_game(
         raise HTTPException(status_code=404, detail="Game not found or could not be updated.")
 
     return updated_project
+
+
+@client_router.post("/games/{project_id}/add-comment", response_model=ProjectCommentResponse)
+def create_comment_endpoint(
+        project_id: str,
+        req: ProjectCommentCreateRequest,
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+        db: Session = Depends(get_db),
+):
+    user_id = jwt_claims.get("uid")
+    return services.create_comment(db, project_id, user_id, req.comment_text)
+
+
+@client_router.get("/games/{project_id}/comments", response_model=list[ProjectCommentResponse])
+def list_comments_endpoint(
+        project_id: str,
+        db: Session = Depends(get_db),
+):
+    return services.list_comments(db, project_id)
+
+
+@client_router.put("/comments/{comment_id}", response_model=ProjectCommentResponse)
+def update_comment_endpoint(
+        comment_id: str,
+        updated_data: ProjectCommentUpdateRequest,
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+        db: Session = Depends(get_db),
+):
+    user_id = jwt_claims.get("uid")
+    return services.update_comment(db, comment_id, updated_data, user_id)
+
+
+@client_router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_comment_endpoint(
+        comment_id: str,
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+        db: Session = Depends(get_db),
+):
+    user_id = jwt_claims.get("uid")
+    return services.delete_comment(db, comment_id, user_id)

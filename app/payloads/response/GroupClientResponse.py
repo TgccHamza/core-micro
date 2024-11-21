@@ -50,7 +50,6 @@ class GroupArenaSessionResponse(BaseModel):
 class GroupArenaClientResponse(BaseModel):
     id: str
     name: str
-    sessions: List[GroupArenaSessionResponse]
 
 
 class GroupClientResponse(BaseModel):

@@ -1,22 +1,25 @@
-from multiprocessing.connection import Client
 from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from starlette.middleware import Middleware
+from starlette import status
 
 from app.helpers import get_jwt_claims
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
+from app.models import ArenaSession
 from app.payloads.request.ArenaAssociateRequest import ArenaAssociateRequest
 from app.payloads.request.ArenaCreateRequest import ArenaCreateRequest
 from app.payloads.request.ArenaDisassociationRequest import ArenaDisassociationRequest
 from app.payloads.request.ArenaUpdateRequest import ArenaUpdateRequest
 from app.payloads.request.GroupCreateRequest import GroupCreateRequest
 from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
-from app.payloads.request.SessionUpdateRequest import SessionUpdateRequest
+from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
+from app.payloads.request.SessionConfigRequest import SessionConfigRequest
 from app.payloads.response.ArenaResponseTop import ArenaResponseTop
 from app.payloads.response.GroupClientResponse import GroupClientResponse
+from app.payloads.response.InvitePlayerResponse import InvitePlayerResponse
+from app.payloads.response.SessionCreateResponse import SessionCreateResponse
 from app.payloads.response.SessionResponse import SessionResponse, SessionCreateRequest
 from app.services import arena as service
 from app.database import get_db
@@ -26,6 +29,7 @@ from sqlalchemy.exc import NoResultFound
 router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
 )
+
 
 # ---------------- Group Routes ----------------
 
@@ -138,11 +142,66 @@ def dissociate_arena(arena_id: UUID, dissociation: ArenaDisassociationRequest, d
 
 # ---------------- Session Routes ----------------
 
-@router.post("/sessions", response_model=SessionResponse)
+@router.post("/sessions", response_model=SessionCreateResponse)
 def create_session(session: SessionCreateRequest, db: Session = Depends(get_db),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    try:
+        org_id = jwt_claims.get("org_id")
+        return service.create_session(db, session, org_id)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"{e}")
+
+
+@router.post("/sessions/{session_id}/invite-players", response_model=InvitePlayerResponse)
+async def invite_players(
+        session_id: str,
+        background_tasks: BackgroundTasks,
+        invite_req: InvitePlayerRequest,
+        db: Session = Depends(get_db),
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
     org_id = jwt_claims.get("org_id")
-    return service.create_session(db, session, org_id)
+
+    # Perform session validation before processing
+    session = db.query(ArenaSession).filter(ArenaSession.id == session_id,
+                                            ArenaSession.organisation_code == org_id).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Arena session with ID {session_id} not found."
+        )
+
+    # Call the service to handle player invitations
+    await service.invite_players(db, session, invite_req, background_tasks)
+
+    return {"message": "Invitations sent successfully"}
+
+
+
+@router.post("/sessions/{session_id}/remove-invitation-players", response_model=InvitePlayerResponse)
+async def remove_invited_players(
+        session_id: str,
+        background_tasks: BackgroundTasks,
+        invite_req: InvitePlayerRequest,
+        db: Session = Depends(get_db),
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
+    org_id = jwt_claims.get("org_id")
+
+    # Perform session validation before processing
+    session = db.query(ArenaSession).filter(ArenaSession.id == session_id,
+                                            ArenaSession.organisation_code == org_id).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Arena session with ID {session_id} not found."
+        )
+
+    # Call the service to handle player invitations
+    await service.remove_invited_players(db, session, invite_req, background_tasks)
+
+    return {"message": "Invitations removed successfully"}
+
 
 
 @router.get("/sessions", response_model=list[SessionResponse])
@@ -160,12 +219,12 @@ def get_session(session_id: str, db: Session = Depends(get_db), jwt_claims: Dict
     return session
 
 
-@router.put("/sessions/{session_id}", response_model=SessionResponse)
-def update_session(session_id: str, session: SessionUpdateRequest, db: Session = Depends(get_db),
+@router.put("/sessions/{session_id}/config", response_model=SessionCreateResponse)
+def config_session(session_id: str, session: SessionConfigRequest, db: Session = Depends(get_db),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return service.update_session(db, session_id, session, org_id)
+        return service.config_session(db, session_id, session, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -178,3 +237,7 @@ def delete_session(session_id: str, db: Session = Depends(get_db),
         return service.delete_session(db, session_id, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Session not found")
+
+
+
+

@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Enum, Integer, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus, GameType, PlayingType, \
-    ModuleType
+    ModuleType, EmailStatus
 
 
 class Project(Base):
@@ -72,25 +72,6 @@ class Project(Base):
         viewonly=True
     )
 
-class ProjectComment(Base):
-    __tablename__ = "project_comments"
-
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id = Column(String(36), nullable=True)
-    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
-    comment_text = Column(Text, nullable=True)  # The actual comment
-    visible = Column(Boolean, default=True)  # Whether the comment is visible
-    created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())  # Timestamp for when the comment was created
-    updated_at = Column(DateTime, nullable=True, onupdate=datetime.now)  # Timestamp for last update
-
-    # Relationships
-    project = relationship(
-        "Project",
-        foreign_keys=[project_id],
-        primaryjoin="ProjectComment.project_id == Project.id",
-        viewonly=True, back_populates="comments"
-    )
-
 class ProjectModule(Base):
     __tablename__ = "project_modules"
 
@@ -111,6 +92,24 @@ class ProjectModule(Base):
         viewonly=True
     )
 
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String(36), nullable=True)
+    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
+    comment_text = Column(Text, nullable=True)  # The actual comment
+    visible = Column(Boolean, default=True)  # Whether the comment is visible
+    created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())  # Timestamp for when the comment was created
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.now)  # Timestamp for last update
+
+    # Relationships
+    project = relationship(
+        "Project",
+        foreign_keys=[project_id],
+        primaryjoin="ProjectComment.project_id == Project.id",
+        viewonly=True, back_populates="comments"
+    )
 
 # ProjectFavorite model
 class ProjectFavorite(Base):
@@ -237,17 +236,18 @@ class ArenaSession(Base):
     organisation_code = Column(String(36), nullable=True, index=True)
     arena_id = Column(String(36))  # No ForeignKey constraint
     project_id = Column(String(36))  # No ForeignKey constraint
-    period_type = Column(Enum(PeriodType), nullable=False)
-    start_time = Column(DateTime, nullable=False)
+    period_type = Column(Enum(PeriodType), nullable=True)
+    start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
-    access_status = Column(Enum(AccessStatus), nullable=False)
-    session_status = Column(Enum(SessionStatus), nullable=False)
-    view_access = Column(Enum(ViewAccess), nullable=False)
+    access_status = Column(Enum(AccessStatus), nullable=True)
+    session_status = Column(Enum(SessionStatus), nullable=True)
+    view_access = Column(Enum(ViewAccess), nullable=True)
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
     super_game_master_id = Column(String(36), nullable=True)
     player_module_id = Column(String(36), nullable=True)
     gamemaster_module_id = Column(String(36), nullable=True)
     super_game_master_module_id = Column(String(36), nullable=True)
+    db_index = Column(String(36), index=True)
 
     # Relationships
     project = relationship("Project",
@@ -271,15 +271,7 @@ class ArenaSessionTeam(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
-    session_id = Column(String(36))  # No ForeignKey constraint
-
-
-class ArenaSessionTeamGameMaster(Base):
-    __tablename__ = "arena_session_team_game_masters"
-
-    team_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), nullable=False)
-
+    session_id = Column(String(36))
 
 # ArenaSessionPlayers model
 class ArenaSessionPlayers(Base):
@@ -287,19 +279,19 @@ class ArenaSessionPlayers(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organisation_code = Column(String(36), nullable=True, index=True)
-    session_id = Column(String(36))  # No ForeignKey constraint
-    team_id = Column(String(36), nullable=True)  # No ForeignKey constraint
-    user_id = Column(String(36), nullable=True)  # No ForeignKey constraint
+    session_id = Column(String(36))
+    team_id = Column(String(36), nullable=True)
+    user_id = Column(String(36), nullable=True)
     user_email = Column(String(255), nullable=True)
-    module_id = Column(String(36))  # No ForeignKey constraint
-
-    module = relationship("ProjectModule",
-                          foreign_keys="ArenaSessionPlayers.module_id",
-                          primaryjoin="ArenaSessionPlayers.module_id == ProjectModule.id",
-                          viewonly=True)
+    user_name = Column(String(255), nullable=True)
+    email_status = Column(Enum(EmailStatus), default=EmailStatus.PENDING, nullable=True)
+    is_game_master = Column(Boolean, default=True)
 
     # Relationships
     session = relationship("ArenaSession",
                            foreign_keys="ArenaSessionPlayers.session_id",
                            primaryjoin="ArenaSessionPlayers.session_id == ArenaSession.id", back_populates="players",
                            viewonly=True)
+
+
+

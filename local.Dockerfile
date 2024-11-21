@@ -1,8 +1,6 @@
 # Use a specific version of Python slim-bullseye for better security
 FROM python:3.11-slim-bullseye
 
-# Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

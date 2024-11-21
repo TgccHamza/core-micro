@@ -36,3 +36,10 @@ class ViewAccess(PyEnum):
 class ActivationStatus(PyEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
+
+
+class EmailStatus(PyEnum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+    DELIVERED = "delivered"

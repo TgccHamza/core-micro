@@ -1,3 +1,5 @@
      venv
      venv/*
      *.log
+     docker-compose.local.yml
+     local.Dockerfile

@@ -7,15 +7,19 @@ from fastapi import HTTPException
 from starlette import status
 
 from app import models
+from app.models import ProjectComment
 from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
+from app.payloads.request.ProjectCommentCreateRequest import ProjectCommentCreateRequest
+from app.payloads.request.ProjectCommentUpdateRequest import ProjectCommentUpdateRequest
 from app.payloads.request.ProjectCreateRequest import ProjectCreateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.EspaceAdminClientResponse import EventGameResponse, FavoriteGameResponse, RecentGameResponse, \
     GroupResponse, ManagerResponse, ArenaResponse, AdminSpaceClientResponse
 from app.payloads.response.GameViewClientResponse import GameViewArenaResponse, GameViewGroupResponse, \
     GameViewManagerResponse, GameViewSessionResponse, GameViewSessionPlayerClientResponse, GameViewClientResponse
+from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
 
 
 def list_projects(db: Session):
@@ -427,3 +431,89 @@ def update_client_game(db: Session, org_id: str, project_id: str, update_data: G
     db.refresh(project)
 
     return project
+
+
+def create_comment(db: Session, project_id: str, user_id: str, comment_text: str) -> ProjectCommentResponse:
+    """
+    Create a new project comment.
+    """
+    new_comment = ProjectComment(project_id=project_id, user_id=user_id, comment_text=comment_text)
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+    return new_comment
+
+
+def get_comment(db: Session, comment_id: str) -> ProjectCommentResponse:
+    """
+    Retrieve a single comment by ID.
+    """
+    comment = db.query(ProjectComment).filter(ProjectComment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+    return comment
+
+
+def list_comments(
+        db: Session,
+        project_id: str = None
+) -> list[ProjectCommentResponse]:
+    """
+    List comments based on filters.
+    """
+    query = db.query(ProjectComment)
+    query = query.filter(ProjectComment.project_id == project_id)
+    query = query.filter(ProjectComment.visible == True)
+    return query.all()
+
+
+def update_comment(
+        db: Session, comment_id: str, updated_data: ProjectCommentUpdateRequest, user_id
+) -> ProjectComment:
+    """
+    Update an existing comment.
+    """
+    comment = db.query(ProjectComment).filter(ProjectComment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+
+    if comment.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not allowed to edit this comment",
+        )
+
+    comment.comment_text = updated_data.comment_text
+
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+def delete_comment(db: Session, comment_id: str, user_id: str):
+    """
+    Delete a comment by ID.
+    """
+    comment = db.query(ProjectComment).filter(ProjectComment.id == comment_id).first()
+
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+
+    if comment.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You are not the owner of the comment to deleted",
+        )
+
+    db.delete(comment)
+    db.commit()
+    return {"detail": "Comment deleted"}

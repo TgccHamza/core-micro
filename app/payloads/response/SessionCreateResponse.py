@@ -10,22 +10,16 @@ from app.enums import PeriodType, AccessStatus, SessionStatus, ViewAccess, Activ
 class ArenaGroupUserResponse(BaseModel):
     user_id: str
 
+
 class ArenaGroupResponse(BaseModel):
     id: str
     name: str
     managers: List[ArenaGroupUserResponse]
 
+
 class ArenaResponse(BaseModel):
     id: str
     name: str
-    groups: List[ArenaGroupResponse]
-
-class ModuleResponse(BaseModel):
-    id: str
-    name: str
-    type: str
-    project_id: str
-    order: Optional[int] = 0
 
 
 class ProjectResponse(BaseModel):
@@ -49,25 +43,28 @@ class SessionPlayerClientResponse(BaseModel):
     user_name: Optional[str]
     email_status: Optional[EmailStatus]
 
+
 class UserSession(BaseModel):
     user_id: Optional[str]
     user_email: Optional[str]
     user_fullname: Optional[str]
 
+
 class SessionCreateRequest(BaseModel):
     arena_id: UUID
     game_id: Optional[UUID]
 
-class SessionResponse(BaseModel):
+
+class SessionCreateResponse(BaseModel):
     id: Optional[UUID]
     arena_id: Optional[UUID]
     project_id: Optional[UUID]
     period_type: Optional[PeriodType]  # You can change this to an Enum if needed
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    access_status: Optional[AccessStatus]  # You can change this to an Enum if needed
-    session_status: Optional[SessionStatus]  # You can change this to an Enum if needed
-    view_access: Optional[ViewAccess]
+    access_status: AccessStatus  # You can change this to an Enum if needed
+    session_status: SessionStatus  # You can change this to an Enum if needed
+    view_access: ViewAccess
     project: Optional[ProjectResponse]
     arena: Optional[ArenaResponse]
     players: List[SessionPlayerClientResponse]
