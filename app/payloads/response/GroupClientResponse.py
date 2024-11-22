@@ -29,7 +29,11 @@ class ModuleResponse(BaseModel):
 
 
 class GroupUserClientResponse(BaseModel):
-    user_id: str
+    id: str
+    user_id:  Optional[str] = ""
+    user_email:  Optional[str] = ""
+    first_name:  Optional[str] = ""
+    last_name: Optional[str] = ""
 
 class GroupSessionPlayerClientResponse(BaseModel):
     user_id: str

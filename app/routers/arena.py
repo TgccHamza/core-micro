@@ -7,21 +7,23 @@ from starlette import status
 from app.helpers import get_jwt_claims
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
-from app.models import ArenaSession
+from app.models import ArenaSession, Group, GroupUsers, ArenaSessionPlayers
 from app.payloads.request.ArenaAssociateRequest import ArenaAssociateRequest
 from app.payloads.request.ArenaCreateRequest import ArenaCreateRequest
 from app.payloads.request.ArenaDisassociationRequest import ArenaDisassociationRequest
 from app.payloads.request.ArenaUpdateRequest import ArenaUpdateRequest
 from app.payloads.request.GroupCreateRequest import GroupCreateRequest
+from app.payloads.request.GroupInviteManagerRequest import GroupInviteManagerRequest
 from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
 from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
 from app.payloads.request.SessionConfigRequest import SessionConfigRequest
+from app.payloads.request.SessionCreateRequest import SessionCreateRequest
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop
 from app.payloads.response.ArenaResponseTop import ArenaResponseTop
 from app.payloads.response.GroupClientResponse import GroupClientResponse
 from app.payloads.response.InvitePlayerResponse import InvitePlayerResponse
 from app.payloads.response.SessionCreateResponse import SessionCreateResponse
-from app.payloads.response.SessionResponse import SessionResponse, SessionCreateRequest
+from app.payloads.response.SessionResponse import SessionResponse
 from app.services import arena as service
 from app.database import get_db
 from uuid import UUID
@@ -35,45 +37,138 @@ router = APIRouter(
 # ---------------- Group Routes ----------------
 
 @router.post("/groups", response_model=GroupClientResponse)
-def create_group(group: GroupCreateRequest, db: Session = Depends(get_db),
+def create_group(group: GroupCreateRequest,
+                 background_tasks: BackgroundTasks,
+                 db: Session = Depends(get_db),
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
-
-    return service.create_group(db, group, org_id)
+    try:
+        org_id = jwt_claims.get("org_id")
+        return service.create_group(db, group, org_id, background_tasks)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating the group: {str(e)}"
+        )
 
 
 @router.get("/groups", response_model=list[GroupClientResponse])
 def list_groups(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
-    return service.get_groups(db, org_id)
+    try:
+        org_id = jwt_claims.get("org_id")
+        return service.get_groups(db, org_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching groups: {str(e)}"
+        )
 
 
 @router.get("/groups/{group_id}", response_model=GroupClientResponse)
 def get_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
-    group = service.get_group(db, group_id, org_id)
-    if not group:
-        raise HTTPException(status_code=404, detail="Group not found")
-    return group
+    try:
+        org_id = jwt_claims.get("org_id")
+        group = service.get_group(db, group_id, org_id)
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+        return group
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while retrieving the group: {str(e)}"
+        )
 
 
 @router.put("/groups/{group_id}", response_model=GroupClientResponse)
 def update_group(group_id: str, group: GroupUpdateRequest, db: Session = Depends(get_db),
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
     try:
+        org_id = jwt_claims.get("org_id")
         return service.update_group(db, group_id, group, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while updating the group: {str(e)}"
+        )
 
 
 @router.delete("/groups/{group_id}")
 def delete_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
     try:
+        org_id = jwt_claims.get("org_id")
         return service.delete_group(db, group_id, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while deleting the group: {str(e)}"
+        )
+
+
+@router.post("/groups/{group_id}/invite-managers")
+def invite_manager(
+        group_id: str,
+        background_tasks: BackgroundTasks,
+        invite_req: GroupInviteManagerRequest,
+        db: Session = Depends(get_db),
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
+    try:
+        org_id = jwt_claims.get("org_id")
+
+        group = db.query(Group).filter(Group.id == group_id,
+                                       Group.organisation_code == org_id).first()
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Group with ID {group_id} not found."
+            )
+
+        service.invite_managers(db, group, invite_req.managers, background_tasks)
+        return {"message": "Invitations sent successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while inviting managers: {str(e)}"
+        )
+
+
+@router.post("/groups/manager/{group_manager_id}/remove")
+def remove_manager(group_manager_id: str, db: Session = Depends(get_db),
+                         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    try:
+        org_id = jwt_claims.get("org_id")
+
+        group_user = db.query(GroupUsers).filter(GroupUsers.id == group_manager_id).first()
+        if not group_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"GroupUser with ID {group_manager_id} not found."
+            )
+
+        if not group_user.group or group_user.group.organisation_code != org_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Group not found."
+            )
+
+        db.delete(group_user)
+        db.commit()
+        return {"message": "Group manager removed successfully."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()  # Rollback in case of an error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while removing the group manager: {str(e)}"
+        )
 
 
 # ---------------- Arena Routes ----------------
@@ -178,7 +273,6 @@ async def invite_players(
     return {"message": "Invitations sent successfully"}
 
 
-
 @router.post("/sessions/{session_id}/remove-invitation-players", response_model=InvitePlayerResponse)
 async def remove_invited_players(
         session_id: str,
@@ -202,7 +296,6 @@ async def remove_invited_players(
     await service.remove_invited_players(db, session, invite_req, background_tasks)
 
     return {"message": "Invitations removed successfully"}
-
 
 
 @router.get("/sessions", response_model=list[SessionResponse])
@@ -240,5 +333,27 @@ def delete_session(session_id: str, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Session not found")
 
 
+@router.post("/sessions/player/{session_player_id}/remove")
+def remove_player(session_player_id: str, db: Session = Depends(get_db),
+                        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    org_id = jwt_claims.get("org_id")
 
+    # Perform session validation before processing
+    session_user = db.query(ArenaSessionPlayers).filter(ArenaSessionPlayers.id == session_player_id,
+                                                        ArenaSessionPlayers.organisation_code == org_id).first()
+    if not session_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session Player with ID {session_player_id} not found."
+        )
 
+    try:
+        db.delete(session_user)
+        db.commit()
+        return {"message": "Player removed from session successfully."}
+    except Exception as e:
+        db.rollback()  # Rollback in case of an error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while removing the player for this session: {str(e)}"
+        )

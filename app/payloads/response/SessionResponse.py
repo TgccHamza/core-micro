@@ -54,9 +54,7 @@ class UserSession(BaseModel):
     user_email: Optional[str]
     user_fullname: Optional[str]
 
-class SessionCreateRequest(BaseModel):
-    arena_id: UUID
-    game_id: Optional[UUID]
+
 
 class SessionResponse(BaseModel):
     id: Optional[UUID]

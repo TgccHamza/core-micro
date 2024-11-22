@@ -11,7 +11,5 @@ class GroupManager(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
-class GroupCreateRequest(BaseModel):
-    name: str
+class GroupInviteManagerRequest(BaseModel):
     managers: Optional[List[GroupManager]] = []
-    project_ids: List[UUID]

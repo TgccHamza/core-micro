@@ -136,6 +136,8 @@ class Group(Base):
     name = Column(String(255), nullable=False)
     organisation_code = Column(String(36), nullable=True, index=True)
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
+    email_status = Column(Enum(EmailStatus), default=EmailStatus.PENDING, nullable=True)
+
 
     # Relationships
     managers = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id",
