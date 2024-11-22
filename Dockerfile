@@ -20,7 +20,7 @@ RUN mkdir -p /app/tmp_uploads /app/tmp \
 && chown -R appuser:appuser /app \
 && chmod 755 /app \
 && chmod -R 755 /app/tmp_uploads /app/tmp \
-&& chmod 777 /app/uvicorn_logs.log
+&& chmod 644 /app/uvicorn_logs.log
 
 # Install system dependencies and cleanup in a single layer
 RUN apt-get update \
