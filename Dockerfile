@@ -45,7 +45,7 @@ RUN python -m venv /app/venv \
 ENV PATH="/app/venv/bin:$PATH"
 
 # Switch to non-root user
-USER root
+USER appuser
 
 # Expose the port that FastAPI runs on
 EXPOSE 8000
