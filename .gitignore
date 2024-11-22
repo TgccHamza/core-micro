@@ -1,5 +1,14 @@
-     venv
-     venv/*
-     *.log
-     *.local.yml
-     *.Dockerfile
+ /venv
+ /venv/*
+ /**/__pycache__
+ /**/**/__pycache__
+
+ /*.log
+
+ /*.local.yml
+
+ /*.Dockerfile
+
+/docker-compose.local.yml
+/local.Dockerfile
+/uvicorn_logs.log
