@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from starlette import status
 
 from app import models
-from app.models import ProjectComment
+from app.models import ProjectComment, ArenaSession
 from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
@@ -202,8 +202,10 @@ def espaceAdmin(db, user_id, org_id):
             online_date=project.start_time,
             game_type=project.game_type,
             playing_type=project.playing_type,
-            total_players=(db.query(models.ArenaSessionPlayers).filter(
-                models.ArenaSessionPlayers.module_id == project.module_game_id
+            total_players=(db.query(models.ArenaSessionPlayers).join(
+                ArenaSession, ArenaSession.id == models.ArenaSessionPlayers.session_id
+            ).filter(
+                models.ArenaSession.player_module_id == project.module_game_id
             ).count()),
             tags=[x.strip() for x in project.tags.split(",")]
         ))
@@ -223,8 +225,10 @@ def espaceAdmin(db, user_id, org_id):
                 online_date=favorite_project.project.start_time,
                 game_type=favorite_project.project.game_type,
                 playing_type=favorite_project.project.playing_type,
-                total_players=(db.query(models.ArenaSessionPlayers).filter(
-                    models.ArenaSessionPlayers.module_id == favorite_project.project.module_game_id
+                total_players=(db.query(models.ArenaSessionPlayers).join(
+                    ArenaSession, ArenaSession.id == models.ArenaSessionPlayers.session_id
+                ).filter(
+                    models.ArenaSession.player_module_id == favorite_project.project.module_game_id
                 ).count()),
                 groups=[
                     GroupResponse(
@@ -258,8 +262,10 @@ def espaceAdmin(db, user_id, org_id):
             online_date=project.start_time,
             game_type=project.game_type,
             playing_type=project.playing_type,
-            total_players=(db.query(models.ArenaSessionPlayers).filter(
-                models.ArenaSessionPlayers.module_id == project.module_game_id
+            total_players=(db.query(models.ArenaSessionPlayers).join(
+                ArenaSession, ArenaSession.id == models.ArenaSessionPlayers.session_id
+            ).filter(
+                models.ArenaSession.player_module_id == project.module_game_id
             ).count()),
             groups=[
                 GroupResponse(
@@ -364,8 +370,10 @@ def gameView(db, org_id, game_id):
         total_managers=total_managers,
         total_groups=total_groups,
         arenas=[arenas[key] for key in arenas],
-        total_players=(db.query(models.ArenaSessionPlayers).filter(
-            models.ArenaSessionPlayers.module_id == game.module_game_id
+        total_players=(db.query(models.ArenaSessionPlayers).join(
+            ArenaSession, ArenaSession.id == models.ArenaSessionPlayers.session_id
+        ).filter(
+            models.ArenaSession.player_module_id == game.module_game_id
         ).count()),
         tags=[x.strip() for x in game.tags.split(",")]
     )
