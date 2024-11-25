@@ -39,7 +39,6 @@ class Project(Base):
     playing_start_time = Column(DateTime, nullable=True)  # Start time if restricted
     playing_end_time = Column(DateTime, nullable=True)  # End time if restricted
 
-
     # Updated relationship with primaryjoin
     modules = relationship(
         "ProjectModule",
@@ -72,6 +71,7 @@ class Project(Base):
         viewonly=True
     )
 
+
 class ProjectModule(Base):
     __tablename__ = "project_modules"
 
@@ -92,6 +92,7 @@ class ProjectModule(Base):
         viewonly=True
     )
 
+
 class ProjectComment(Base):
     __tablename__ = "project_comments"
 
@@ -100,7 +101,8 @@ class ProjectComment(Base):
     user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
     comment_text = Column(Text, nullable=True)  # The actual comment
     visible = Column(Boolean, default=True)  # Whether the comment is visible
-    created_at = Column(DateTime, nullable=True, default=lambda: datetime.now())  # Timestamp for when the comment was created
+    created_at = Column(DateTime, nullable=True,
+                        default=lambda: datetime.now())  # Timestamp for when the comment was created
     updated_at = Column(DateTime, nullable=True, onupdate=datetime.now)  # Timestamp for last update
 
     # Relationships
@@ -110,6 +112,32 @@ class ProjectComment(Base):
         primaryjoin="ProjectComment.project_id == Project.id",
         viewonly=True, back_populates="comments"
     )
+
+    likes = relationship(
+        "CommentLike",
+        primaryjoin="ProjectComment.id == CommentLike.comment_id",
+        back_populates="comment",
+        foreign_keys='CommentLike.comment_id',
+        viewonly=True
+    )
+
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    comment_id = Column(String(36), nullable=True)
+    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
+    created_at = Column(DateTime, nullable=True,
+                        default=lambda: datetime.now())  # Timestamp for when the comment was created
+
+    comment = relationship(
+        "ProjectComment",
+        foreign_keys=[comment_id],
+        primaryjoin="CommentLike.comment_id == ProjectComment.id",
+        viewonly=True
+    )
+
 
 # ProjectFavorite model
 class ProjectFavorite(Base):
@@ -137,7 +165,6 @@ class Group(Base):
     organisation_code = Column(String(36), nullable=True, index=True)
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
     email_status = Column(Enum(EmailStatus), default=EmailStatus.PENDING, nullable=True)
-
 
     # Relationships
     managers = relationship("GroupUsers", primaryjoin="GroupUsers.group_id == Group.id",
@@ -275,6 +302,7 @@ class ArenaSessionTeam(Base):
     name = Column(String(255), nullable=False)
     session_id = Column(String(36))
 
+
 # ArenaSessionPlayers model
 class ArenaSessionPlayers(Base):
     __tablename__ = "arena_session_players"
@@ -294,6 +322,3 @@ class ArenaSessionPlayers(Base):
                            foreign_keys="ArenaSessionPlayers.session_id",
                            primaryjoin="ArenaSessionPlayers.session_id == ArenaSession.id", back_populates="players",
                            viewonly=True)
-
-
-

@@ -7,7 +7,7 @@ from fastapi import HTTPException, Depends
 from starlette import status
 
 from app import models
-from app.models import ProjectComment, ArenaSession
+from app.models import ProjectComment, ArenaSession, CommentLike
 from app.payloads.request.GameUpdateRequest import GameUpdateRequest
 from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
@@ -548,3 +548,37 @@ def delete_comment(db: Session, comment_id: str, user_id: str):
     db.delete(comment)
     db.commit()
     return {"detail": "Comment deleted"}
+
+
+def dislike_comment(db: Session, comment_id: str, user_id) -> ProjectComment:
+    """
+    Update an existing comment.
+    """
+    comment_like = db.query(CommentLike).filter(CommentLike.comment_id == comment_id,CommentLike.user_id == user_id).first()
+    if not comment_like:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment like not found",
+        )
+    comment = comment_like.comment
+    db.delete(comment_like)
+    db.commit()
+    return comment
+
+def like_comment(db: Session, comment_id: str, user_id) -> ProjectComment:
+    """
+    Update an existing comment.
+    """
+    comment = db.query(ProjectComment).filter(ProjectComment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+
+    likeComment = CommentLike(comment_id=comment_id, user_id=user_id)
+    db.add(likeComment)
+
+    db.commit()
+    db.refresh(comment)
+    return likeComment.comment

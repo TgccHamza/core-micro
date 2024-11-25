@@ -246,3 +246,17 @@ def delete_comment_endpoint(
 ):
     user_id = jwt_claims.get("uid")
     return services.delete_comment(db, comment_id, user_id)
+
+
+@client_router.post("/comments/{comment_id}/like", response_model=ProjectCommentResponse)
+def like_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+                          db: Session = Depends(get_db)):
+    user_id = jwt_claims.get("uid")
+    return services.like_comment(db, comment_id, user_id)
+
+
+@client_router.post("/comments/{comment_id}/dislike", response_model=ProjectCommentResponse)
+def like_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+                          db: Session = Depends(get_db)):
+    user_id = jwt_claims.get("uid")
+    return services.dislike_comment(db, comment_id, user_id)
