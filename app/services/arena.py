@@ -25,7 +25,6 @@ from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, Are
 # ---------------- Group CRUD Operations ----------------
 
 def create_group(db: Session, group: GroupCreateRequest, org_id: str, background_tasks):
-
     print("create_group")
     db_group = models.Group(name=group.name, organisation_code=org_id)
     db.add(db_group)
@@ -141,7 +140,46 @@ def get_arenas(db: Session, org_id: str):
 # Get a specific Arena by ID
 def get_arena(db: Session, arena_id: UUID, org_id: str):
     return db.query(models.Arena).filter(models.Arena.id == str(arena_id),
-                                         models.Arena.organisation_code == org_id).first()
+                                             models.Arena.organisation_code == org_id).first()
+
+def show_arena(db: Session, arena_id: UUID, org_id: str):
+    db_arena = get_arena(db, arena_id, org_id)
+
+    if not db_arena:
+        raise NoResultFound("Arena not found")
+
+    arena = ArenaListResponseTop(id=db_arena.id,
+                                 name=db_arena.name,
+                                 groups=[],
+                                 players=[])
+    groups = []
+    for db_group in db_arena.groups:
+        group = ArenaListGroupClientResponse(
+            id=db_group.id,
+            name=db_group.name,
+            managers=[ArenaListGroupUserClientResponse(
+                user_id=manager.user_id,
+                user_email=manager.user_email,
+                user_name=f"{manager.first_name} {manager.last_name}",
+                picture=manager.picture
+            ) for manager in db_group.managers]
+        )
+        groups.append(group)
+    arena.groups = groups
+    dict_players = set()
+    players = []
+    for session in db_arena.sessions:
+        for player in session.players:
+            if player.user_email not in dict_players:
+                dict_players.add(player.user_email)
+                players.append(ArenaMembers(
+                    user_id=player.user_id,
+                    user_email=player.user_email,
+                    user_name=player.user_name,
+                    picture=None
+                ))
+    arena.players = players
+    return arena
 
 
 # Update Arena name only (group association updates are not allowed here)

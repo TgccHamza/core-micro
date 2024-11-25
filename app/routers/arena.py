@@ -186,10 +186,10 @@ def list_arenas(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depe
     return service.get_arenas(db, org_id)
 
 
-@router.get("/arenas/{arena_id}", response_model=ArenaResponseTop)
+@router.get("/arenas/{arena_id}", response_model=ArenaListResponseTop)
 def get_arena(arena_id: UUID, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    arena = service.get_arena(db, arena_id, org_id)
+    arena = service.show_arena(db, arena_id, org_id)
     if not arena:
         raise HTTPException(status_code=404, detail="Arena not found")
     return arena

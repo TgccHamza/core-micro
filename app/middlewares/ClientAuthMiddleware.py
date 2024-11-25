@@ -1,6 +1,6 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from jose import jwt  # You can install with `pip install python-jose`
+import jwt  # You can install with `pip install python-jose`
 from typing import Optional
 
 
@@ -32,8 +32,9 @@ class ClientAuthMiddleware(BaseHTTPMiddleware):
                     # You can provide `options={"verify_signature": False}` to skip verification
                     claims = jwt.decode(token, key=self.secret_key or "", options={"verify_signature": False})
                     # Attach claims to the request state for access in controllers
+                    print(claims)
                     request.state.jwt_claims = claims
-                except jwt.JWTError as e:
+                except jwt.exceptions.PyJWTError as e:
                     request.state.jwt_claims = default_claims
         else:
             request.state.jwt_claims = default_claims

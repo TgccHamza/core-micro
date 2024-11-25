@@ -9,5 +9,5 @@ cryptography
 grpcio
 grpcio-tools
 python-multipart
-python-jose
+pyjwt
 httpx
