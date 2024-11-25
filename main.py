@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 
@@ -23,15 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 import tempfile
+import app.logger
 
-log_file = "uvicorn_logs.log"
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler(log_file),  # Save logs to a file
-                        logging.StreamHandler()  # Also log to console
-                    ])
-logger = logging.getLogger(__name__)
 
 print("Change tmp folder for uploading file")
 #actualy he take the file in memory only
