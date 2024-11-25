@@ -24,6 +24,13 @@ stages:
                 sudo dpkg -i 'trivy_0.57.1_Linux-64bit.deb'
                 trivy -v
             displayName: 'Install Trivy'
+          
+          - script: |
+                echo "Scanning the local filesystem with Trivy"
+                trivy fs --exit-code 1 --severity HIGH,CRITICAL --scanners vuln,secret,misconfig ./
+            displayName: 'Run Trivy Filesystem Scan'
+            continueOnError: true
+          
           - task: Docker@2
             displayName: Build & Push to ACR
             inputs:
