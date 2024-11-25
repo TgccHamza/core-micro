@@ -24,7 +24,7 @@ spec:
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          # readOnlyRootFilesystem: true
         env:
           - name: SEGMENT_MICRO
             value: /gamicore
