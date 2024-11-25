@@ -44,9 +44,9 @@ client_router = APIRouter(
 
 
 @admin_router.get("/projects", response_model=list[ProjectAdminResponse])
-def get_projects(db: Session = Depends(get_db)):
+async def get_projects(db: Session = Depends(get_db)):
     """Endpoint to list all projects."""
-    return services.list_projects(db)
+    return await services.list_projects(db)
 
 
 @admin_router.get("/projects/{project_id}/modules", response_model=list[ModuleAdminResponse])

@@ -3,7 +3,7 @@ from logging import Manager
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from starlette import status
 
 from app import models
@@ -19,12 +19,35 @@ from app.payloads.response.EspaceAdminClientResponse import EventGameResponse, F
     GroupResponse, ManagerResponse, ArenaResponse, AdminSpaceClientResponse
 from app.payloads.response.GameViewClientResponse import GameViewArenaResponse, GameViewGroupResponse, \
     GameViewManagerResponse, GameViewSessionResponse, GameViewSessionPlayerClientResponse, GameViewClientResponse
+from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
+from app.services.organisation_service import OrganisationServiceClient
 
 
-def list_projects(db: Session):
-    """Retrieve a list of all projects."""
-    return db.query(models.Project).all()
+def get_organisation_service() -> OrganisationServiceClient:
+    return OrganisationServiceClient()
+
+
+async def list_projects(db: Session):
+    organisation_service = get_organisation_service()
+    projects = db.query(models.Project).all()
+    result = []
+    for project in projects:
+        organisation_name = organisation_service.get_organisation_name(str(project.organisation_code))
+        print(organisation_name)
+        if organisation_name is None:
+            organisation_name = "Unknown Organisation"
+        result.append(ProjectAdminResponse(
+            id=project.id,
+            name=project.name,
+            organisation_name=organisation_name,
+            game_type=project.game_type,
+            playing_type=project.playing_type,
+            slug=project.slug,
+            organisation_code=project.organisation_code
+        ))
+    print(result)
+    return result
 
 
 def list_modules(db: Session, project_id: str):
