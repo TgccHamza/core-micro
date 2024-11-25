@@ -33,10 +33,10 @@ async def list_projects(db: Session):
     projects = db.query(models.Project).all()
     result = []
     for project in projects:
-        organisation_name = organisation_service.get_organisation_name(str(project.organisation_code))
-        print(organisation_name)
+        organisation_name = await organisation_service.get_organisation_name(str(project.organisation_code))
         if organisation_name is None:
             organisation_name = "Unknown Organisation"
+
         result.append(ProjectAdminResponse(
             id=project.id,
             name=project.name,
@@ -46,7 +46,7 @@ async def list_projects(db: Session):
             slug=project.slug,
             organisation_code=project.organisation_code
         ))
-    print(result)
+
     return result
 
 

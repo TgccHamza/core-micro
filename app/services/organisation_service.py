@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 class OrganisationServiceClient:
     def __init__(self):
-        self.base_url = 'https://dev-api.thegamechangercompany.io/client-auth'
+        self.base_url = 'https://dev-api.thegamechangercompany.io/client-auth/api/v1'
 
     async def get_organisation_name(self, organisation_code: str) -> str:
         url = f"{self.base_url}/organisations/{organisation_code}"
@@ -12,8 +12,9 @@ class OrganisationServiceClient:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
-                data = response.json()
-                return data.get("organisation_name", "Unknown Organisation")
+                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                    data = response.json()
+                return data.get("name", "Unknown Organisation")
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Error connecting to organisation service: {str(e)}")
         except httpx.HTTPStatusError as e:
