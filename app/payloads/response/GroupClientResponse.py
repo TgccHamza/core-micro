@@ -20,14 +20,6 @@ class ProjectResponse(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
 
-class ModuleResponse(BaseModel):
-    id: str
-    name: str
-    type: str
-    project_id: str
-    order: Optional[int] = 0
-
-
 class GroupUserClientResponse(BaseModel):
     id: str
     user_id:  Optional[str] = ""
@@ -36,24 +28,27 @@ class GroupUserClientResponse(BaseModel):
     last_name: Optional[str] = ""
 
 class GroupSessionPlayerClientResponse(BaseModel):
-    user_id: str
-    module: Optional[ModuleResponse]
+    user_id:  Optional[str] = ""
+    user_email:  Optional[str] = ""
+    first_name:  Optional[str] = ""
+    last_name: Optional[str] = ""
 
 
 class GroupArenaSessionResponse(BaseModel):
     id: str
-    period_type: PeriodType
-    start_time: datetime
-    end_time: datetime
-    access_status: AccessStatus
-    session_status: SessionStatus
-    view_access: ViewAccess
+    period_type: Optional[PeriodType]
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    access_status: Optional[AccessStatus]
+    session_status: Optional[SessionStatus]
+    view_access: Optional[ViewAccess]
     players: List[GroupSessionPlayerClientResponse]
 
 
 class GroupArenaClientResponse(BaseModel):
     id: str
     name: str
+    sessions: List[GroupArenaSessionResponse] = []
 
 
 class GroupClientResponse(BaseModel):

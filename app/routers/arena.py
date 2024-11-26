@@ -7,7 +7,7 @@ from starlette import status
 from app.helpers import get_jwt_claims
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
-from app.models import ArenaSession, Group, GroupUsers, ArenaSessionPlayers
+from app.models import ArenaSession, Group, GroupUsers, ArenaSessionPlayers, Project
 from app.payloads.request.ArenaAssociateRequest import ArenaAssociateRequest
 from app.payloads.request.ArenaCreateRequest import ArenaCreateRequest
 from app.payloads.request.ArenaDisassociationRequest import ArenaDisassociationRequest
@@ -20,6 +20,7 @@ from app.payloads.request.SessionConfigRequest import SessionConfigRequest
 from app.payloads.request.SessionCreateRequest import SessionCreateRequest
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop
 from app.payloads.response.ArenaResponseTop import ArenaResponseTop
+from app.payloads.response.GroupByGameResponse import GroupByGameResponse
 from app.payloads.response.GroupClientResponse import GroupClientResponse
 from app.payloads.response.InvitePlayerResponse import InvitePlayerResponse
 from app.payloads.response.SessionCreateResponse import SessionCreateResponse
@@ -357,3 +358,26 @@ def remove_player(session_player_id: str, db: Session = Depends(get_db),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while removing the player for this session: {str(e)}"
         )
+
+
+
+
+@router.get("/groups/game/{game_id}", response_model=list[GroupByGameResponse])
+async def groups_by_game(
+        game_id: str,
+        db: Session = Depends(get_db),
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
+    org_id = jwt_claims.get("org_id")
+
+    # Perform session validation before processing
+    game = db.query(Project).filter(Project.id == game_id,
+                                            Project.organisation_code == org_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game with ID {game_id} not found."
+        )
+
+
+    return service.groups_by_game(db, game)

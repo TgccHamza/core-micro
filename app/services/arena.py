@@ -20,27 +20,25 @@ from app.payloads.request.SessionCreateRequest import SessionCreateRequest
 from app.payloads.request.SessionUpdateRequest import SessionUpdateRequest
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, ArenaMembers, ArenaListGroupClientResponse, \
     ArenaListGroupUserClientResponse
+from app.payloads.response.GroupByGameResponse import GroupByGameResponse, GroupByGameArenaClientResponse, \
+    GroupByGameArenaSessionResponse, GroupByGameSessionPlayerClientResponse, GroupByGameUserClientResponse
 
 
 # ---------------- Group CRUD Operations ----------------
 
 def create_group(db: Session, group: GroupCreateRequest, org_id: str, background_tasks):
-    print("create_group")
     db_group = models.Group(name=group.name, organisation_code=org_id)
     db.add(db_group)
     db.commit()
     db.refresh(db_group)
 
-    print("Hello world")
     for project_id in group.project_ids:
         db_project_group = models.GroupProjects(group_id=db_group.id, project_id=project_id)
         db.add(db_project_group)
     db.commit()
 
-    print(group.managers)
     invite_managers(db, db_group, group.managers, background_tasks)
 
-    print(db_group)
     return db_group
 
 
@@ -140,7 +138,8 @@ def get_arenas(db: Session, org_id: str):
 # Get a specific Arena by ID
 def get_arena(db: Session, arena_id: UUID, org_id: str):
     return db.query(models.Arena).filter(models.Arena.id == str(arena_id),
-                                             models.Arena.organisation_code == org_id).first()
+                                         models.Arena.organisation_code == org_id).first()
+
 
 def show_arena(db: Session, arena_id: UUID, org_id: str):
     db_arena = get_arena(db, arena_id, org_id)
@@ -437,3 +436,57 @@ def invite_managers(db: Session, group: Group, managers: List[GroupManager], bac
 
     db.commit()  # Commit the new players to the database
     return {"message": "Emails queued for sending"}
+
+
+def groups_by_game(db: Session, game: Project):
+    groups = []
+    for db_group in game.groups:
+        group = GroupByGameResponse(
+            id=db_group.id,
+            name=db_group.name,
+            managers=[],
+            arenas=[]
+        )
+        for db_arena in db_group.arenas:
+            arena = GroupByGameArenaClientResponse(
+                id=db_arena.id,
+                name=db_arena.name,
+                sessions=[]
+            )
+            arena_sessions = db.query(ArenaSession).filter(
+                ArenaSession.project_id == game.id,
+                ArenaSession.arena_id == arena.id
+            )
+            for db_session in arena_sessions:
+                session = GroupByGameArenaSessionResponse(
+                    id=db_session.id,
+                    period_type=db_session.period_type,
+                    start_time=db_session.start_time,
+                    end_time=db_session.end_time,
+                    access_status=db_session.access_status,
+                    session_status=db_session.session_status,
+                    view_access=db_session.view_access,
+                    players=[]
+                )
+                for db_player in session.players:
+                    player = GroupByGameSessionPlayerClientResponse(
+                        user_id=db_player.user_id,
+                        email=db_player.user_email,
+                        first_name=db_player.user_name,
+                        last_name=db_player.user_name,
+                        picture=db_player.picture,
+                    )
+                    session.players.append(player)
+                arena.sessions.append(session)
+            group.arenas.append(arena)
+        for db_manager in db_group.managers:
+            manager = GroupByGameUserClientResponse(
+                id=db_manager.id,
+                user_id=db_manager.user_id,
+                user_email=db_manager.user_email,
+                first_name=db_manager.first_name,
+                last_name=db_manager.last_name
+            )
+            group.managers.append(manager)
+        groups.append(group)
+    return groups
