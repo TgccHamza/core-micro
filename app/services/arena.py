@@ -22,6 +22,16 @@ from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, Are
     ArenaListGroupUserClientResponse
 from app.payloads.response.GroupByGameResponse import GroupByGameResponse, GroupByGameArenaClientResponse, \
     GroupByGameArenaSessionResponse, GroupByGameSessionPlayerClientResponse, GroupByGameUserClientResponse
+from app.services.organisation_service import OrganisationServiceClient
+from app.services.user_service import UserServiceClient
+
+
+def get_organisation_service() -> OrganisationServiceClient:
+    return OrganisationServiceClient()
+
+
+def get_user_service() -> UserServiceClient:
+    return UserServiceClient()
 
 
 # ---------------- Group CRUD Operations ----------------
@@ -96,7 +106,7 @@ def create_arena(db: Session, arena: ArenaCreateRequest, org_id: str):
 
 
 # Get all Arenas with their associated groups
-def get_arenas(db: Session, org_id: str):
+async def get_arenas(db: Session, org_id: str):
     arenas_data = db.query(models.Arena).filter(models.Arena.organisation_code == org_id).all()
     arenas = []
     for db_arena in arenas_data:
@@ -109,13 +119,31 @@ def get_arenas(db: Session, org_id: str):
             group = ArenaListGroupClientResponse(
                 id=db_group.id,
                 name=db_group.name,
-                managers=[ArenaListGroupUserClientResponse(
-                    user_id=manager.user_id,
-                    user_email=manager.user_email,
-                    user_name=f"{manager.first_name} {manager.last_name}",
-                    picture=manager.picture
-                ) for manager in db_group.managers]
+                managers=[]
             )
+
+            for manager in db_group.managers:
+                # Fetch user details using the UserServiceClient
+                user_details = None
+                if (not manager.user_id is None) and manager.user_id != 'None':
+                    user_details = await get_user_service().get_user_by_id(manager.user_id)
+
+                if user_details is None and (not manager.user_email is None) and manager.user_email != 'None':
+                    user_details = await get_user_service().get_user_by_email(manager.user_email)
+
+                if user_details:
+                    group.managers.append(ArenaListGroupUserClientResponse(
+                        **(dict(user_details)),
+                        picture=manager.picture  # Assuming `picture` is stored in the `manager` object
+                    ))
+                else:
+                    group.managers.append(ArenaListGroupUserClientResponse(
+                        user_id=manager.user_id,
+                        user_email=manager.user_email,
+                        user_name=f"{manager.first_name} {manager.last_name}",
+                        picture=manager.picture  # Assuming `picture` is stored in the `manager` object
+                    ))
+
             groups.append(group)
         arena.groups = groups
         dict_players = set()
@@ -124,12 +152,27 @@ def get_arenas(db: Session, org_id: str):
             for player in session.players:
                 if player.user_email not in dict_players:
                     dict_players.add(player.user_email)
-                    players.append(ArenaMembers(
-                        user_id=player.user_id,
-                        user_email=player.user_email,
-                        user_name=player.user_name,
-                        picture=None
-                    ))
+                    # Fetch user details using the UserServiceClient
+                    user_details = None
+                    if (not player.user_id is None) and player.user_id != 'None':
+                        user_details = await get_user_service().get_user_by_id(player.user_id)
+
+                    if user_details is None and (not player.user_email is None) and player.user_email != 'None':
+                        user_details = await get_user_service().get_user_by_email(player.user_email)
+
+                    if user_details:
+                        players.append(ArenaMembers(
+                            **dict(user_details),
+                            picture=None
+                        ))
+                    else:
+                        players.append(ArenaMembers(
+                            user_id=player.user_id,
+                            user_email=player.user_email,
+                            user_name=player.user_name,
+                            picture=None
+                        ))
+
         arena.players = players
         arenas.append(arena)
     return arenas
@@ -141,7 +184,7 @@ def get_arena(db: Session, arena_id: UUID, org_id: str):
                                          models.Arena.organisation_code == org_id).first()
 
 
-def show_arena(db: Session, arena_id: UUID, org_id: str):
+async def show_arena(db: Session, arena_id: UUID, org_id: str):
     db_arena = get_arena(db, arena_id, org_id)
 
     if not db_arena:
@@ -156,13 +199,31 @@ def show_arena(db: Session, arena_id: UUID, org_id: str):
         group = ArenaListGroupClientResponse(
             id=db_group.id,
             name=db_group.name,
-            managers=[ArenaListGroupUserClientResponse(
-                user_id=manager.user_id,
-                user_email=manager.user_email,
-                user_name=f"{manager.first_name} {manager.last_name}",
-                picture=manager.picture
-            ) for manager in db_group.managers]
+            managers=[]
         )
+
+        for manager in db_group.managers:
+            # Fetch user details using the UserServiceClient
+            user_details = None
+            if (not manager.user_id is None) and manager.user_id != 'None':
+                user_details = await get_user_service().get_user_by_id(manager.user_id)
+
+            if user_details is None and (not manager.user_email is None) and manager.user_email != 'None':
+                user_details = await get_user_service().get_user_by_email(manager.user_email)
+
+            if user_details:
+                group.managers.append(ArenaListGroupUserClientResponse(
+                    **(dict(user_details)),
+                    picture=manager.picture  # Assuming `picture` is stored in the `manager` object
+                ))
+            else:
+                group.managers.append(ArenaListGroupUserClientResponse(
+                    user_id=manager.user_id,
+                    user_email=manager.user_email,
+                    user_name=f"{manager.first_name} {manager.last_name}",
+                    picture=manager.picture  # Assuming `picture` is stored in the `manager` object
+                ))
+
         groups.append(group)
     arena.groups = groups
     dict_players = set()
@@ -171,12 +232,25 @@ def show_arena(db: Session, arena_id: UUID, org_id: str):
         for player in session.players:
             if player.user_email not in dict_players:
                 dict_players.add(player.user_email)
-                players.append(ArenaMembers(
-                    user_id=player.user_id,
-                    user_email=player.user_email,
-                    user_name=player.user_name,
-                    picture=None
-                ))
+                user_details = None
+                if (not player.user_id is None) and player.user_id != 'None':
+                    user_details = await get_user_service().get_user_by_id(player.user_id)
+
+                if user_details is None and (not player.user_email is None) and player.user_email != 'None':
+                    user_details = await get_user_service().get_user_by_email(player.user_email)
+
+                if user_details:
+                    players.append(ArenaMembers(
+                        **dict(user_details),
+                        picture=None
+                    ))
+                else:
+                    players.append(ArenaMembers(
+                        user_id=player.user_id,
+                        user_email=player.user_email,
+                        user_name=player.user_name,
+                        picture=None
+                    ))
     arena.players = players
     return arena
 
@@ -280,12 +354,6 @@ def update_session(db: Session, session_id: str, session: SessionUpdateRequest, 
     db_session.session_status = session.session_status
     db_session.view_access = session.view_access
     db_session.project_id = session.project_id
-
-    # Update Players
-    db.query(models.ArenaSessionPlayers).filter(models.ArenaSessionPlayers.session_id == session_id).delete()
-    for user_id in session.user_ids:
-        db_player = models.ArenaSessionPlayers(session_id=session_id, user_id=user_id)
-        db.add(db_player)
 
     db.commit()
     return db_session
@@ -438,7 +506,7 @@ def invite_managers(db: Session, group: Group, managers: List[GroupManager], bac
     return {"message": "Emails queued for sending"}
 
 
-def groups_by_game(db: Session, game: Project):
+async def groups_by_game(db: Session, game: Project):
     groups = []
     for db_group in game.groups:
         group = GroupByGameResponse(
@@ -469,13 +537,28 @@ def groups_by_game(db: Session, game: Project):
                     players=[]
                 )
                 for db_player in session.players:
-                    player = GroupByGameSessionPlayerClientResponse(
-                        user_id=db_player.user_id,
-                        email=db_player.user_email,
-                        first_name=db_player.user_name,
-                        last_name=db_player.user_name,
-                        picture=db_player.picture,
-                    )
+                    # Fetch user details using the UserServiceClient
+                    user_details = None
+                    if (not db_player.user_id is None) and db_player.user_id != 'None':
+                        user_details = await get_user_service().get_user_by_id(db_player.user_id)
+
+                    if user_details is None and (not db_player.user_email is None) and db_player.user_email != 'None':
+                        user_details = await get_user_service().get_user_by_email(db_player.user_email)
+
+                    if user_details:
+                        player = GroupByGameSessionPlayerClientResponse(
+                            **dict(user_details),
+                            picture=db_player.picture,
+                        )
+                    else:
+                        player = GroupByGameSessionPlayerClientResponse(
+                            user_id=db_player.user_id,
+                            email=db_player.user_email,
+                            first_name=db_player.user_name,
+                            last_name=db_player.user_name,
+                            picture=db_player.picture,
+                        )
+
                     session.players.append(player)
                 arena.sessions.append(session)
             group.arenas.append(arena)

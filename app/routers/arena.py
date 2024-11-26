@@ -182,15 +182,15 @@ def create_arena(arena: ArenaCreateRequest, db: Session = Depends(get_db),
 
 
 @router.get("/arenas", response_model=list[ArenaListResponseTop])
-def list_arenas(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def list_arenas(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    return service.get_arenas(db, org_id)
+    return await service.get_arenas(db, org_id)
 
 
 @router.get("/arenas/{arena_id}", response_model=ArenaListResponseTop)
-def get_arena(arena_id: UUID, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def get_arena(arena_id: UUID, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    arena = service.show_arena(db, arena_id, org_id)
+    arena = await service.show_arena(db, arena_id, org_id)
     if not arena:
         raise HTTPException(status_code=404, detail="Arena not found")
     return arena
@@ -221,7 +221,7 @@ def associate_arena(arena_id: UUID, association: ArenaAssociateRequest, db: Sess
                     jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return service.associate_arena_with_group(db, arena_id, association.group_id, org_id)
+        return service.associate_arena_with_group(db, arena_id, association.group_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena or Group not found")
 
@@ -232,7 +232,7 @@ def dissociate_arena(arena_id: UUID, dissociation: ArenaDisassociationRequest, d
                      jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return service.dissociate_arena_from_group(db, arena_id, dissociation.group_id, org_id)
+        return service.dissociate_arena_from_group(db, arena_id, dissociation.group_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena, Group, or Association not found")
 
@@ -380,4 +380,4 @@ async def groups_by_game(
         )
 
 
-    return service.groups_by_game(db, game)
+    return await service.groups_by_game(db, game)

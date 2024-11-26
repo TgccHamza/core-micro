@@ -19,7 +19,7 @@ class OrganisationServiceClient:
                 return data.get("name", "Unknown Organisation")
         except httpx.RequestError as e:
             logger.error(f"Error connecting to organisation service: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Error connecting to organisation service: {str(e)}")
+            return "Unknown Organisation"
         except httpx.HTTPStatusError as e:
             logger.error(f"Organisation service error: {response.json().get('detail', str(e))}")
             return "Unknown Organisation"
@@ -32,4 +32,5 @@ class OrganisationServiceClient:
                 response.raise_for_status()
                 return response.json()  # Assume response is {"code1": "name1", "code2": "name2", ...}
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Error connecting to organisation service: {str(e)}")
+            logger.error(f"Error connecting to organisation service: {str(e)}")
+            return {}
