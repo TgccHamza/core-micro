@@ -233,13 +233,14 @@ def custom_openapi(schema_tag):
 # Endpoint to get the logs from the log file
 @app.get("/get-logs")
 async def get_logs():
+    log_file = app.logger.log_file
     if not os.path.exists(log_file):
-        logger.error(f"Log file {log_file} does not exist.")
+        app.logger.logger.error(f"Log file {log_file} does not exist.")
         raise HTTPException(status_code=404, detail="Log file not found.")
 
     # Return the log file as response
     try:
         return FileResponse(log_file, media_type='text/plain', filename=log_file)
     except Exception as e:
-        logger.error(f"Error reading log file: {str(e)}")
+        app.logger.logger.error(f"Error reading log file: {str(e)}")
         raise HTTPException(status_code=500, detail="Error reading log file.")

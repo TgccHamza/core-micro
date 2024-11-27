@@ -343,10 +343,10 @@ async def list_sessions(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
-def get_session(session_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def get_session(session_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        session = services_show_session.show_session(db, session_id, org_id)
+        session = await services_show_session.show_session(db, session_id, org_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return session
