@@ -255,8 +255,8 @@ async def espaceAdmin(db, user_id, org_id):
                         id=group.id,
                         name=group.name,
                         managers=[ManagerResponse(
-                            id=manager.user_id,
-                            email=manager.user_email,
+                            id=str(manager.user_id) if manager.user_id else None,
+                            email=str(manager.user_email) if manager.user_email else None,
                             first_name=manager.first_name,
                             last_name=manager.last_name,
                             picture=manager.picture,
@@ -551,7 +551,8 @@ def dislike_comment(db: Session, comment_id: str, user_id) -> ProjectComment:
     """
     Update an existing comment.
     """
-    comment_like = db.query(CommentLike).filter(CommentLike.comment_id == comment_id,CommentLike.user_id == user_id).first()
+    comment_like = db.query(CommentLike).filter(CommentLike.comment_id == comment_id,
+                                                CommentLike.user_id == user_id).first()
     if not comment_like:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -561,6 +562,7 @@ def dislike_comment(db: Session, comment_id: str, user_id) -> ProjectComment:
     db.delete(comment_like)
     db.commit()
     return comment
+
 
 def like_comment(db: Session, comment_id: str, user_id) -> ProjectComment:
     """
