@@ -21,17 +21,8 @@ from app.payloads.response.GameViewClientResponse import GameViewArenaResponse, 
     GameViewManagerResponse, GameViewSessionResponse, GameViewSessionPlayerClientResponse, GameViewClientResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
-from app.services.organisation_service import OrganisationServiceClient
+from app.services.organisation_service import OrganisationServiceClient, get_organisation_service
 from app.services.user_service import UserServiceClient
-
-
-def get_organisation_service() -> OrganisationServiceClient:
-    return OrganisationServiceClient()
-
-
-
-def get_user_service() -> UserServiceClient:
-    return UserServiceClient()
 
 
 async def list_projects(db: Session):

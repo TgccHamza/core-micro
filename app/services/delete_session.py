@@ -1,0 +1,68 @@
+import logging
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException, status
+
+from app.models import ArenaSession, ArenaSessionPlayers
+from app.services.get_session import get_session
+
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+def delete_session(db: Session, session_id: str, org_id: str):
+    """
+    Deletes a session and its associated players from the database.
+
+    Args:
+        db (Session): Database session.
+        session_id (str): ID of the session to be deleted.
+        org_id (str): Organization ID that the session belongs to.
+
+    Returns:
+        dict: Confirmation message indicating the session was deleted.
+
+    Raises:
+        HTTPException: If the session is not found or if there is a database error.
+    """
+    try:
+        # Fetch the session to be deleted
+        db_session = get_session(db, session_id, org_id)
+        if not db_session:
+            logger.warning(f"Session {session_id} not found for organization {org_id}.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Session not found"
+            )
+
+        # Delete players associated with the session
+        db.query(ArenaSessionPlayers).filter(ArenaSessionPlayers.session_id == session_id).delete()
+        logger.info(f"Deleted players for session {session_id}.")
+
+        # Delete the session itself
+        db.delete(db_session)
+        logger.info(f"Deleted session {session_id}.")
+
+        # Commit changes to the database
+        db.commit()
+        logger.info(f"Session {session_id} deleted successfully.")
+
+        return {"message": "Session deleted successfully"}
+
+    except SQLAlchemyError as e:
+        # Handle database-related errors (e.g., connection issues, integrity errors)
+        db.rollback()  # Ensure the transaction is rolled back in case of error
+        logger.error(f"Database error occurred while deleting session {session_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while deleting the session."
+        )
+
+    except Exception as e:
+        # Handle unexpected errors
+        logger.error(f"Unexpected error occurred: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred."
+        )

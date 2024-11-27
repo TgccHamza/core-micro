@@ -190,7 +190,7 @@ class GroupUsers(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     group_id = Column(String(36))  # No ForeignKey constraint
-    user_id = Column(String(36))  # No ForeignKey constraint
+    user_id = Column(String(36), nullable=True)  # No ForeignKey constraint
     user_email = Column(String(255), nullable=True)  # No ForeignKey constraint
     first_name = Column(String(150), nullable=True)  # No ForeignKey constraint
     last_name = Column(String(150), nullable=True)  # No ForeignKey constraint

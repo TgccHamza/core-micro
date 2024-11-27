@@ -79,3 +79,7 @@ class UserServiceClient:
         except httpx.HTTPStatusError as e:
             logger.error(f"User service error: {response.json().get('detail', str(e))}")
             return None
+
+
+def get_user_service() -> UserServiceClient:
+    return UserServiceClient()

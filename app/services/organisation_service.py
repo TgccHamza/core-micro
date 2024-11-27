@@ -34,3 +34,8 @@ class OrganisationServiceClient:
         except httpx.RequestError as e:
             logger.error(f"Error connecting to organisation service: {str(e)}")
             return {}
+
+
+
+def get_organisation_service() -> OrganisationServiceClient:
+    return OrganisationServiceClient()

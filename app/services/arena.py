@@ -1,5 +1,3 @@
-from typing import List
-
 import httpx
 from sqlalchemy.orm import Session
 from fastapi import BackgroundTasks
@@ -20,18 +18,16 @@ from app.payloads.request.SessionCreateRequest import SessionCreateRequest
 from app.payloads.request.SessionUpdateRequest import SessionUpdateRequest
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, ArenaMembers, ArenaListGroupClientResponse, \
     ArenaListGroupUserClientResponse
+from app.payloads.response.ArenaShowByGameResponse import ArenaShowByGameResponse
 from app.payloads.response.GroupByGameResponse import GroupByGameResponse, GroupByGameArenaClientResponse, \
     GroupByGameArenaSessionResponse, GroupByGameSessionPlayerClientResponse, GroupByGameUserClientResponse
+from app.payloads.response.GroupClientResponse import GroupClientResponse, GroupUserClientResponse, \
+    GroupArenaClientResponse, GroupArenaSessionResponse, GroupSessionPlayerClientResponse
+from app.payloads.response.SessionCreateResponse import ProjectResponse
+from app.services.get_arena import get_arena
+from app.services.invite_managers import invite_managers
 from app.services.organisation_service import OrganisationServiceClient
-from app.services.user_service import UserServiceClient
-
-
-def get_organisation_service() -> OrganisationServiceClient:
-    return OrganisationServiceClient()
-
-
-def get_user_service() -> UserServiceClient:
-    return UserServiceClient()
+from app.services.user_service import UserServiceClient, get_user_service
 
 
 # ---------------- Group CRUD Operations ----------------
@@ -52,8 +48,101 @@ def create_group(db: Session, group: GroupCreateRequest, org_id: str, background
     return db_group
 
 
-def get_groups(db: Session, org_id: str):
-    return db.query(models.Group).filter(models.Group.organisation_code == org_id).all()
+async def get_groups(db: Session, org_id: str):
+    db_groups = db.query(models.Group).filter(models.Group.organisation_code == org_id).all()
+    groups = []
+    for db_group in db_groups:
+        group = GroupClientResponse(
+            id=db_group.id,
+            name=db_group.name,
+            managers=[],
+            arenas=[],
+            games=[]
+        )
+        for manager in db_group.managers:
+            # Fetch user details using the UserServiceClient
+            user_details = None
+            if (not manager.user_id is None) and manager.user_id != 'None':
+                user_details = await get_user_service().get_user_by_id(manager.user_id)
+
+            if user_details is None and (not manager.user_email is None) and manager.user_email != 'None':
+                user_details = await get_user_service().get_user_by_email(manager.user_email)
+
+            if user_details:
+                group.managers.append(GroupUserClientResponse(
+                    id=manager.id,
+                    **(dict(user_details)),
+                ))
+            else:
+                group.managers.append(GroupUserClientResponse(
+                    id=manager.id,
+                    user_id=manager.user_id,
+                    user_email=manager.user_email,
+                    user_name=f"{manager.first_name} {manager.last_name}",
+                ))
+
+        for db_arena in db_group.arenas:
+            arena = GroupArenaClientResponse(
+                id=db_arena.id,
+                name=db_arena.name,
+                sessions=[]
+            )
+            arena_sessions = db.query(ArenaSession).filter(
+                ArenaSession.arena_id == arena.id
+            )
+            for db_session in arena_sessions:
+                session = GroupArenaSessionResponse(
+                    id=db_session.id,
+                    period_type=db_session.period_type,
+                    start_time=db_session.start_time,
+                    end_time=db_session.end_time,
+                    access_status=db_session.access_status,
+                    session_status=db_session.session_status,
+                    view_access=db_session.view_access,
+                    players=[]
+                )
+                for db_player in db_session.players:
+                    # Fetch user details using the UserServiceClient
+                    user_details = None
+                    if (not db_player.user_id is None) and db_player.user_id != 'None':
+                        user_details = await get_user_service().get_user_by_id(db_player.user_id)
+
+                    if user_details is None and (not db_player.user_email is None) and db_player.user_email != 'None':
+                        user_details = await get_user_service().get_user_by_email(db_player.user_email)
+
+                    if user_details:
+                        player = GroupSessionPlayerClientResponse(
+                            **dict(user_details)
+                        )
+                    else:
+                        player = GroupSessionPlayerClientResponse(
+                            user_id=db_player.user_id,
+                            email=db_player.user_email,
+                            first_name=db_player.user_name,
+                            last_name=db_player.user_name
+                        )
+
+                    session.players.append(player)
+                arena.sessions.append(session)
+            group.arenas.append(arena)
+
+        for db_game in db_group.games:
+            game = ProjectResponse(
+                id=db_game.id,
+                name=db_game.name,
+                description=db_game.description,
+                slug=db_game.slug,
+                visibility=db_game.visibility,
+                activation_status=db_game.activation_status,
+                client_id=db_game.client_id,
+                client_name=db_game.client_name,
+                start_time=db_game.start_time,
+                end_time=db_game.end_time
+            )
+            group.games.append(game)
+        groups.append(group)
+
+    return groups
 
 
 def get_group(db: Session, group_id: str, org_id: str):
@@ -177,13 +266,6 @@ async def get_arenas(db: Session, org_id: str):
         arenas.append(arena)
     return arenas
 
-
-# Get a specific Arena by ID
-def get_arena(db: Session, arena_id: UUID, org_id: str):
-    return db.query(models.Arena).filter(models.Arena.id == str(arena_id),
-                                         models.Arena.organisation_code == org_id).first()
-
-
 async def show_arena(db: Session, arena_id: UUID, org_id: str):
     db_arena = get_arena(db, arena_id, org_id)
 
@@ -253,6 +335,8 @@ async def show_arena(db: Session, arena_id: UUID, org_id: str):
                     ))
     arena.players = players
     return arena
+
+
 
 
 # Update Arena name only (group association updates are not allowed here)
@@ -335,241 +419,3 @@ def create_session(db: Session, session: SessionCreateRequest, org_id: str):
 
 def get_sessions(db: Session, org_id: str):
     return db.query(models.ArenaSession).filter(models.ArenaSession.organisation_code == org_id).all()
-
-
-def get_session(db: Session, session_id: str, org_id: str):
-    return db.query(models.ArenaSession).filter(models.ArenaSession.id == session_id,
-                                                models.ArenaSession.organisation_code == org_id).first()
-
-
-def update_session(db: Session, session_id: str, session: SessionUpdateRequest, org_id: str):
-    db_session = get_session(db, session_id, org_id=org_id)
-    if not db_session:
-        raise NoResultFound("Session not found")
-
-    db_session.period_type = session.period_type
-    db_session.start_time = session.start_time
-    db_session.end_time = session.end_time
-    db_session.access_status = session.access_status
-    db_session.session_status = session.session_status
-    db_session.view_access = session.view_access
-    db_session.project_id = session.project_id
-
-    db.commit()
-    return db_session
-
-
-def config_session(db: Session, session_id: str, session: SessionConfigRequest, org_id: str):
-    db_session = get_session(db, session_id, org_id=org_id)
-    if not db_session:
-        raise NoResultFound("Session not found")
-
-    db_session.period_type = session.period_type
-    db_session.start_time = session.start_time
-    db_session.end_time = session.end_time
-    db_session.access_status = session.access_status
-    db_session.session_status = session.session_status
-    db_session.view_access = session.view_access
-    db.commit()
-    return db_session
-
-
-def delete_session(db: Session, session_id: str, org_id: str):
-    db_session = get_session(db, session_id, org_id)
-    if not db_session:
-        raise NoResultFound("Session not found")
-
-    db.query(models.ArenaSessionPlayers).filter(models.ArenaSessionPlayers.session_id == session_id).delete()
-    db.delete(db_session)
-    db.commit()
-    return {"message": "Session deleted successfully"}
-
-
-# Update send_invite_email function to handle email status
-async def send_invite_email(db: Session, player: ArenaSessionPlayers, email: str, fullname: str, organisation_name,
-                            game_name, game_link):
-    url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
-    try:
-        async with httpx.AsyncClient() as client:
-            email_data = {
-                "html_body": f"Hi {fullname}, Welcome to gaming tool platform you have been invited from {organisation_name} to play this game link: <br/> <a href=\"{game_link}\">{game_name}</a>",
-                "is_html": True,
-                "subject": f"{organisation_name}  Invitation link to play {game_name}",
-                "to": email
-            }
-            response = await client.post(url, json=email_data)
-
-            if response.status_code == 200 or response.status_code == 202 or response.status_code == 201:
-                print(f"Email sent successfully to {email_data['to']}")
-                player.email_status = EmailStatus.SENT  # Update status to SENT
-            else:
-                print(f"Failed to send email: {response.status_code}, {response.text}")
-                player.email_status = EmailStatus.FAILED  # Update status to FAILED
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        player.email_status = EmailStatus.FAILED  # Update status to FAILED on error
-
-    db.commit()  # Commit the email status update in the database
-
-
-# Update send_invite_email function to handle email status
-async def send_invite_manager(db: Session, manager: GroupUsers, email: str, fullname: str, organisation_name,
-                              group_name, group_link):
-    url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
-    try:
-        async with httpx.AsyncClient() as client:
-            email_data = {
-                "html_body": f"Hi {fullname}, Welcome to gaming tool platform you have been invited from {organisation_name} to manage this group link: <a href=\"{group_link}\">{group_name}</a>",
-                "is_html": True,
-                "subject": f"{organisation_name}  Invitation link to manage {group_name}",
-                "to": email
-            }
-            response = await client.post(url, json=email_data)
-
-            if response.status_code == 200 or response.status_code == 202 or response.status_code == 201:
-                print(f"Email sent successfully to {email_data['to']}")
-                manager.email_status = EmailStatus.SENT  # Update status to SENT
-            else:
-                print(f"Failed to send email: {response.status_code}, {response.text}")
-                manager.email_status = EmailStatus.FAILED  # Update status to FAILED
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        manager.email_status = EmailStatus.FAILED  # Update status to FAILED on error
-
-    db.commit()  # Commit the email status update in the database
-
-
-# Updated invite_players function to integrate email status
-async def invite_players(
-        db: Session,
-        session: ArenaSession,
-        invite_req: InvitePlayerRequest,
-        background_tasks: BackgroundTasks
-):
-    project = db.query(Project).filter(Project.id == session.project_id).first()
-    if not project:
-        raise ValueError("Project not found for the session")
-
-    # Get the game and organization info
-    game_name = project.name
-    game_link = f"{project.organisation_code}.gamitool.com/{project.slug}/invite"
-    organisation_name = f"{project.organisation_code}"  # Example: you could fetch this dynamically
-
-    # Send invitation emails in the background
-    for user in invite_req.members:
-        if user.user_email:
-            db_player = ArenaSessionPlayers(
-                session_id=session.id,
-                user_name=str(user.user_fullname),
-                user_email=str(user.user_email),
-                user_id=str(user.user_id),
-                organisation_code=session.organisation_code,
-                email_status=EmailStatus.PENDING  # Set initial email status to PENDING
-            )
-            db.add(db_player)
-
-            # Add the email sending task with updated status tracking
-            background_tasks.add_task(
-                send_invite_email, db, db_player, user.user_email, user.user_fullname, organisation_name, game_name,
-                game_link
-            )
-
-    db.commit()  # Commit the new players to the database
-    return {"message": "Emails queued for sending"}
-
-
-# Updated invite_players function to integrate email status
-def invite_managers(db: Session, group: Group, managers: List[GroupManager], background_tasks: BackgroundTasks):
-    # Get the game and organization info
-    game_name = group.name
-    game_link = f"{group.organisation_code}.gamitool.com/group/{group.id}/invite"
-    organisation_name = f"{group.organisation_code}"  # Example: you could fetch this dynamically
-
-    # Send invitation emails in the background
-    for user in managers:
-        if user.user_email:
-            manager = GroupUsers(
-                group_id=group.id,
-                user_email=str(user.user_email),
-                user_id=str(user.user_id)
-            )
-            db.add(manager)
-
-            # Add the email sending task with updated status tracking
-            background_tasks.add_task(
-                send_invite_manager, db, manager, user.user_email, f"{user.first_name} {user.last_name}",
-                organisation_name, game_name, game_link)
-
-    db.commit()  # Commit the new players to the database
-    return {"message": "Emails queued for sending"}
-
-
-async def groups_by_game(db: Session, game: Project):
-    groups = []
-    for db_group in game.groups:
-        group = GroupByGameResponse(
-            id=db_group.id,
-            name=db_group.name,
-            managers=[],
-            arenas=[]
-        )
-        for db_arena in db_group.arenas:
-            arena = GroupByGameArenaClientResponse(
-                id=db_arena.id,
-                name=db_arena.name,
-                sessions=[]
-            )
-            arena_sessions = db.query(ArenaSession).filter(
-                ArenaSession.project_id == game.id,
-                ArenaSession.arena_id == arena.id
-            )
-            for db_session in arena_sessions:
-                session = GroupByGameArenaSessionResponse(
-                    id=db_session.id,
-                    period_type=db_session.period_type,
-                    start_time=db_session.start_time,
-                    end_time=db_session.end_time,
-                    access_status=db_session.access_status,
-                    session_status=db_session.session_status,
-                    view_access=db_session.view_access,
-                    players=[]
-                )
-                for db_player in session.players:
-                    # Fetch user details using the UserServiceClient
-                    user_details = None
-                    if (not db_player.user_id is None) and db_player.user_id != 'None':
-                        user_details = await get_user_service().get_user_by_id(db_player.user_id)
-
-                    if user_details is None and (not db_player.user_email is None) and db_player.user_email != 'None':
-                        user_details = await get_user_service().get_user_by_email(db_player.user_email)
-
-                    if user_details:
-                        player = GroupByGameSessionPlayerClientResponse(
-                            **dict(user_details),
-                            picture=db_player.picture,
-                        )
-                    else:
-                        player = GroupByGameSessionPlayerClientResponse(
-                            user_id=db_player.user_id,
-                            email=db_player.user_email,
-                            first_name=db_player.user_name,
-                            last_name=db_player.user_name,
-                            picture=db_player.picture,
-                        )
-
-                    session.players.append(player)
-                arena.sessions.append(session)
-            group.arenas.append(arena)
-        for db_manager in db_group.managers:
-            manager = GroupByGameUserClientResponse(
-                id=db_manager.id,
-                user_id=db_manager.user_id,
-                user_email=db_manager.user_email,
-                first_name=db_manager.first_name,
-                last_name=db_manager.last_name
-            )
-            group.managers.append(manager)
-        groups.append(group)
-    return groups
