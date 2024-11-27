@@ -43,7 +43,6 @@ from app.services import get_sessions as services_get_sessions
 from app.services import create_session as services_create_session
 from app.services import create_group as services_create_group
 from app.services import get_groups as services_get_groups
-from app.services import get_group as services_get_group
 from app.services import update_group as services_update_group
 from app.services import delete_group as services_delete_group
 from app.services import create_arena as services_create_arena
@@ -54,6 +53,7 @@ from app.services import delete_arena as services_delete_arena
 from app.services import associate_arena_with_group as services_associate_arena_with_group
 from app.services import dissociate_arena_from_group as services_dissociate_arena_from_group
 from app.services import remove_player_from_session as services_remove_player_from_session
+from app.services import  show_group as services_show_group
 
 router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
@@ -93,7 +93,7 @@ async def list_groups(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] 
 def get_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        group = services_get_group.get_group(db, group_id, org_id)
+        group = services_show_group.show_group(db, group_id, org_id)
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         return group
