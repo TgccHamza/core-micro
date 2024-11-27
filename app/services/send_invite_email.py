@@ -4,20 +4,19 @@ from sqlalchemy.orm import Session
 from app.models import ArenaSessionPlayers
 from app.enums import EmailStatus
 
-
 # Configure logger for structured logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 async def send_invite_email(
-    db: Session,
-    player: ArenaSessionPlayers,
-    email: str,
-    fullname: str,
-    organisation_name: str,
-    game_name: str,
-    game_link: str,
+        db: Session,
+        player: ArenaSessionPlayers,
+        email: str,
+        fullname: str,
+        organisation_name: str,
+        game_name: str,
+        game_link: str,
 ):
     """
     Sends an invitation email to a player and updates their email status in the database.
@@ -35,6 +34,10 @@ async def send_invite_email(
         None
     """
     email_service_url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
+
+    if fullname is None:
+        fullname = ""
+
     email_payload = {
         "html_body": (
             f"Hi {fullname},<br/><br/>"

@@ -30,7 +30,7 @@ async def invite_managers(
 
     # Prepare group and organisation details
     game_name = group.name
-    organisation_name = get_organisation_service().get_organisation_name(group.organisation_code)
+    organisation_name = await get_organisation_service().get_organisation_name(group.organisation_code)
     game_link = f"{organisation_name}.gamitool.com/group/{group.id}/invite"
 
     # Fetch all existing invited emails for the group

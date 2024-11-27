@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from starlette import status
 
+from app.exceptions import PlayerNotFoundError, NoResultFoundError
 from app.helpers import get_jwt_claims
+from app.logger import logger
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
 from app.models import ArenaSession, Group, GroupUsers, ArenaSessionPlayers, Project
@@ -30,7 +32,6 @@ from app.database import get_db
 from uuid import UUID
 from sqlalchemy.exc import NoResultFound
 
-from app.services import arena as services_arena
 from app.services import config_session as services_config_session
 from app.services import delete_session as services_delete_session
 from app.services import get_session as services_get_session
@@ -39,6 +40,20 @@ from app.services import invite_managers as services_invite_managers
 from app.services import invite_players as services_invite_players
 from app.services import show_arena_by_game as services_show_arena_by_game
 from app.services import get_sessions as services_get_sessions
+from app.services import create_session as services_create_session
+from app.services import create_group as services_create_group
+from app.services import get_groups as services_get_groups
+from app.services import get_group as services_get_group
+from app.services import update_group as services_update_group
+from app.services import delete_group as services_delete_group
+from app.services import create_arena as services_create_arena
+from app.services import get_arenas as services_get_arenas
+from app.services import show_arena as services_show_arena
+from app.services import update_arena as services_update_arena
+from app.services import delete_arena as services_delete_arena
+from app.services import associate_arena_with_group as services_associate_arena_with_group
+from app.services import dissociate_arena_from_group as services_dissociate_arena_from_group
+from app.services import remove_player_from_session as services_remove_player_from_session
 
 router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
@@ -54,7 +69,7 @@ def create_group(group: GroupCreateRequest,
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_arena.create_group(db, group, org_id, background_tasks)
+        return services_create_group.create_group(db, group, org_id, background_tasks)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -66,7 +81,7 @@ def create_group(group: GroupCreateRequest,
 async def list_groups(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return await services_arena.get_groups(db, org_id)
+        return await services_get_groups.get_groups(db, org_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -78,7 +93,7 @@ async def list_groups(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] 
 def get_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        group = services_arena.get_group(db, group_id, org_id)
+        group = services_get_group.get_group(db, group_id, org_id)
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         return group
@@ -96,7 +111,7 @@ def update_group(group_id: str, group: GroupUpdateRequest, db: Session = Depends
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_arena.update_group(db, group_id, group, org_id)
+        return services_update_group.update_group(db, group_id, group, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
     except Exception as e:
@@ -110,7 +125,7 @@ def update_group(group_id: str, group: GroupUpdateRequest, db: Session = Depends
 def delete_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_arena.delete_group(db, group_id, org_id)
+        return services_delete_group.delete_group(db, group_id, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
     except Exception as e:
@@ -188,20 +203,20 @@ def remove_manager(group_manager_id: str, db: Session = Depends(get_db),
 def create_arena(arena: ArenaCreateRequest, db: Session = Depends(get_db),
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    return services_arena.create_arena(db, arena, org_id)
+    return services_create_arena.create_arena(db, arena, org_id)
 
 
 @router.get("/arenas", response_model=list[ArenaListResponseTop])
 async def list_arenas(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    return await services_arena.get_arenas(db, org_id)
+    return await services_get_arenas.get_arenas(db, org_id)
 
 
 @router.get("/arenas/{arena_id}", response_model=ArenaListResponseTop)
 async def get_arena(arena_id: UUID, db: Session = Depends(get_db),
                     jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    arena = await services_arena.show_arena(db, arena_id, org_id)
+    arena = await services_show_arena.show_arena(db, arena_id, org_id)
     if not arena:
         raise HTTPException(status_code=404, detail="Arena not found")
     return arena
@@ -222,7 +237,7 @@ def update_arena(arena_id: UUID, arena: ArenaUpdateRequest, db: Session = Depend
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return services_arena.update_arena(db, arena_id, arena, org_id)
+        return services_update_arena.update_arena(db, arena_id, arena, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena not found")
 
@@ -231,7 +246,7 @@ def update_arena(arena_id: UUID, arena: ArenaUpdateRequest, db: Session = Depend
 def delete_arena(arena_id: UUID, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return services_arena.delete_arena(db, arena_id, org_id)
+        return services_delete_arena.delete_arena(db, arena_id, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena not found")
 
@@ -242,7 +257,7 @@ def associate_arena(arena_id: UUID, association: ArenaAssociateRequest, db: Sess
                     jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return services_arena.associate_arena_with_group(db, arena_id, association.group_id)
+        return services_associate_arena_with_group.associate_arena_with_group(db, arena_id, association.group_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena or Group not found")
 
@@ -253,7 +268,7 @@ def dissociate_arena(arena_id: UUID, dissociation: ArenaDisassociationRequest, d
                      jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
-        return services_arena.dissociate_arena_from_group(db, arena_id, dissociation.group_id)
+        return services_dissociate_arena_from_group.dissociate_arena_from_group(db, arena_id, dissociation.group_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Arena, Group, or Association not found")
 
@@ -265,7 +280,7 @@ def create_session(session: SessionCreateRequest, db: Session = Depends(get_db),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_arena.create_session(db, session, org_id)
+        return services_create_session.create_session(db, session, org_id)
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"{e}")
 
@@ -345,40 +360,57 @@ def config_session(session_id: str, session: SessionConfigRequest, db: Session =
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Session not found")
 
-
 @router.delete("/sessions/{session_id}")
 def delete_session(session_id: str, db: Session = Depends(get_db),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    """
+    Deletes a session by its ID. Ensures the session exists and belongs to the correct organization.
+    """
     org_id = jwt_claims.get("org_id")
+
     try:
-        return services_delete_session.delete_session(db, session_id, org_id)
-    except NoResultFound:
-        raise HTTPException(status_code=404, detail="Session not found")
+        # Delegate the session deletion logic to the service layer
+        services_delete_session.delete_session(db, session_id, org_id)
+        return {"message": "Session deleted successfully."}
+
+    except NoResultFoundError:
+        # Specific exception when the session is not found
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found."
+        )
+    except Exception as e:
+        # General error handling for unexpected issues
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while deleting the session: {str(e)}"
+        )
 
 
 @router.post("/sessions/player/{session_player_id}/remove")
 def remove_player(session_player_id: str, db: Session = Depends(get_db),
                   jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    """
+    Removes a player from the specified session.
+    Ensures the player exists and belongs to the correct organization.
+    """
     org_id = jwt_claims.get("org_id")
 
-    # Perform session validation before processing
-    session_user = db.query(ArenaSessionPlayers).filter(ArenaSessionPlayers.id == session_player_id,
-                                                        ArenaSessionPlayers.organisation_code == org_id).first()
-    if not session_user:
+    try:
+        # Delegate session validation and removal to the service layer
+        services_remove_player_from_session.remove_player_from_session(db, session_player_id, org_id)
+        return {"message": "Player removed from session successfully."}
+
+    except PlayerNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session Player with ID {session_player_id} not found."
         )
-
-    try:
-        db.delete(session_user)
-        db.commit()
-        return {"message": "Player removed from session successfully."}
     except Exception as e:
-        db.rollback()  # Rollback in case of an error
+        # Handle any unforeseen errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while removing the player for this session: {str(e)}"
+            detail=f"An error occurred while removing the player: {str(e)}"
         )
 
 
@@ -440,7 +472,7 @@ async def groups_by_game(
 
     except Exception as e:
         # Log the error (you can use a logger like 'logging' or any other framework)
-        # logger.error(f"Error in groups_by_game: {str(e)}")
+        logger.error(f"Error in groups_by_game: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while processing the request {e}"

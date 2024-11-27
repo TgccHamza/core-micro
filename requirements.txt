@@ -11,3 +11,4 @@ grpcio-tools
 python-multipart
 pyjwt
 httpx
+asyncio

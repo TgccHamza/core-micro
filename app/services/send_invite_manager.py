@@ -32,6 +32,10 @@ async def send_invite_manager(
     Returns:
         None
     """
+
+    if fullname is None:
+        fullname = ""
+
     email_api_url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
     email_data = {
         "html_body": (

@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 
-from app.models import ArenaSession, ArenaSessionPlayers
+from app.exceptions.NoResultFoundError import NoResultFoundError
+from app.models import ArenaSessionPlayers
 from app.services.get_session import get_session
 
 # Set up logging
@@ -31,10 +32,7 @@ def delete_session(db: Session, session_id: str, org_id: str):
         db_session = get_session(db, session_id, org_id)
         if not db_session:
             logger.warning(f"Session {session_id} not found for organization {org_id}.")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found"
-            )
+            raise NoResultFoundError(f"Session with ID {session_id} not found in the organization.")
 
         # Delete players associated with the session
         db.query(ArenaSessionPlayers).filter(ArenaSessionPlayers.session_id == session_id).delete()

@@ -61,7 +61,7 @@ async def invite_players(
     game_name = project.name
 
     if project.organisation_code:
-        organisation_name = get_organisation_service().get_organisation_name(str(project.organisation_code))
+        organisation_name = await get_organisation_service().get_organisation_name(str(project.organisation_code))
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
