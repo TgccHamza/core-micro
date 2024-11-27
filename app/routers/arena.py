@@ -34,7 +34,7 @@ from sqlalchemy.exc import NoResultFound
 
 from app.services import config_session as services_config_session
 from app.services import delete_session as services_delete_session
-from app.services import get_session as services_get_session
+from app.services import show_session as services_show_session
 from app.services import groups_by_game as services_groups_by_game
 from app.services import invite_managers as services_invite_managers
 from app.services import invite_players as services_invite_players
@@ -345,7 +345,7 @@ async def list_sessions(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
 def get_session(session_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    session = services_get_session.get_session(db, session_id, org_id)
+    session = services_show_session.show_session(db, session_id, org_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
