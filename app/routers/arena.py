@@ -90,10 +90,10 @@ async def list_groups(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] 
 
 
 @router.get("/groups/{group_id}", response_model=GroupClientResponse)
-def get_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def get_group(group_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        group = services_show_group.show_group(db, group_id, org_id)
+        group = await services_show_group.show_group(db, group_id, org_id)
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
         return group
