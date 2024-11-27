@@ -192,7 +192,7 @@ async def _get_managers_by_group(db_group) -> List[GroupByGameUserClientResponse
         user_details = await _fetch_user_details(db_manager.user_id, db_manager.user_email)
 
         manager_response = GroupByGameUserClientResponse(
-            id=db_manager.id,
+            id=str(db_manager.id) if db_manager.id else None,
             user_id=user_details.get("user_id") if user_details else db_manager.user_id,
             user_email=user_details.get("user_email") if user_details else db_manager.user_email,
             first_name=user_details.get("first_name") if user_details else db_manager.first_name,

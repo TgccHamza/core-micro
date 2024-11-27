@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
@@ -382,21 +382,66 @@ def remove_player(session_player_id: str, db: Session = Depends(get_db),
         )
 
 
-@router.get("/groups/game/{game_id}", response_model=list[GroupByGameResponse])
+@router.get("/groups/game/{game_id}", response_model=List[GroupByGameResponse])
 async def groups_by_game(
         game_id: str,
         db: Session = Depends(get_db),
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
 ):
-    org_id = jwt_claims.get("org_id")
+    """
+    Endpoint to retrieve groups by game.
 
-    # Perform session validation before processing
-    game = db.query(Project).filter(Project.id == game_id,
-                                    Project.organisation_code == org_id).first()
-    if not game:
+    This endpoint fetches the groups related to a specific game, ensuring that the game
+    belongs to the organization of the current user. It calls the `groups_by_game`
+    service to retrieve the group details.
+
+    Parameters:
+    - game_id (str): The ID of the game.
+    - db (Session): The database session, injected through dependency.
+    - jwt_claims (Dict): The JWT claims containing organization info.
+
+    Returns:
+    - List[GroupByGameResponse]: A list of groups associated with the game.
+
+    Raises:
+    - HTTPException: If the game is not found or does not belong to the user's organization.
+    """
+    try:
+        org_id = jwt_claims.get("org_id")
+
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization ID missing in JWT claims."
+            )
+
+        # Fetch the game from the database, checking both the game_id and the org_id
+        game = db.query(Project).filter(
+            Project.id == game_id,
+            Project.organisation_code == org_id
+        ).first()
+
+        if not game:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Game with ID {game_id} not found for the organization."
+            )
+
+        # Call the service to get groups related to the game
+        groups = await services_groups_by_game.groups_by_game(db, game)
+
+        if not groups:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No groups found for the game with ID {game_id}."
+            )
+
+        return groups
+
+    except Exception as e:
+        # Log the error (you can use a logger like 'logging' or any other framework)
+        # logger.error(f"Error in groups_by_game: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Game with ID {game_id} not found."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while processing the request {e}"
         )
-
-    return await services_groups_by_game.groups_by_game(db, game)

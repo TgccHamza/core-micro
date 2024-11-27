@@ -8,7 +8,7 @@ from app.enums import PeriodType, AccessStatus, ViewAccess, SessionStatus, Activ
 
 
 class GroupByGameUserClientResponse(BaseModel):
-    id: str
+    id: Optional[str] = None
     user_id: Optional[str] = ""
     user_email: Optional[str] = ""
     first_name: Optional[str] = ""
