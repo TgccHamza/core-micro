@@ -197,7 +197,7 @@ def list_favorites(db: Session, user_id: str):
     return favorites
 
 
-def espaceAdmin(db, user_id, org_id):
+async def espaceAdmin(db, user_id, org_id):
     # db.query(models.Project).filter().all()
     current_time = datetime.now()
 

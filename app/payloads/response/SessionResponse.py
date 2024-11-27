@@ -9,16 +9,22 @@ from app.enums import PeriodType, AccessStatus, SessionStatus, ViewAccess, Activ
 
 class ArenaGroupUserResponse(BaseModel):
     user_id: str
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
 
 class ArenaGroupResponse(BaseModel):
     id: str
     name: str
     managers: List[ArenaGroupUserResponse]
 
+
 class ArenaResponse(BaseModel):
     id: str
     name: str
     groups: List[ArenaGroupResponse]
+
 
 class ModuleResponse(BaseModel):
     id: str
@@ -49,25 +55,25 @@ class SessionPlayerClientResponse(BaseModel):
     user_name: Optional[str]
     email_status: Optional[EmailStatus]
 
+
 class UserSession(BaseModel):
     user_id: Optional[str]
     user_email: Optional[str]
     user_fullname: Optional[str]
 
 
-
 class SessionResponse(BaseModel):
     id: Optional[UUID]
-    arena_id: Optional[UUID]
-    project_id: Optional[UUID]
-    period_type: Optional[PeriodType]  # You can change this to an Enum if needed
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    access_status: Optional[AccessStatus]  # You can change this to an Enum if needed
-    session_status: Optional[SessionStatus]  # You can change this to an Enum if needed
-    view_access: Optional[ViewAccess]
-    project: Optional[ProjectResponse]
-    arena: Optional[ArenaResponse]
+    arena_id: Optional[UUID] = None
+    project_id: Optional[UUID] = None
+    period_type: Optional[PeriodType] = None  # You can change this to an Enum if needed
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    access_status: Optional[AccessStatus] = None  # You can change this to an Enum if needed
+    session_status: Optional[SessionStatus] = None  # You can change this to an Enum if needed
+    view_access: Optional[ViewAccess] = None
+    project: Optional[ProjectResponse] = None
+    arena: Optional[ArenaResponse] = None
     players: List[SessionPlayerClientResponse]
 
     class Config:

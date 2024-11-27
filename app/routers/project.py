@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app.helpers import get_jwt_claims
+from app.logger import logger
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.CollabAuthMiddleware import CollabAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
@@ -129,11 +130,55 @@ async def upload_file(module_id: str, file: UploadFile = File(description="Requi
 
 
 @client_router.get("/espace-admin", response_model=AdminSpaceClientResponse)
-def admin_space(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
-    org_id = jwt_claims.get("org_id")
-    user_id = jwt_claims.get("uid")
-    return services.espaceAdmin(db=db, user_id=user_id, org_id=org_id)
+async def admin_space(
+    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint to retrieve admin space information for a client.
 
+    This endpoint fetches the admin space details for the client based on JWT claims,
+    which include the organization ID (org_id) and user ID (uid). It calls the `espaceAdmin`
+    service to retrieve the necessary data from the database.
+
+    Parameters:
+    - jwt_claims (Dict): The JWT claims, which include the `org_id` and `uid`.
+    - db (Session): The database session, injected through dependency.
+
+    Returns:
+    - AdminSpaceClientResponse: The response model containing admin space details.
+
+    Raises:
+    - HTTPException: If `org_id` or `uid` is missing from the JWT claims or if a database error occurs.
+    """
+    try:
+        org_id = jwt_claims.get("org_id")
+        user_id = jwt_claims.get("uid")
+
+        if not org_id or not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing 'org_id' or 'uid' in JWT claims"
+            )
+
+        # Call the service function to retrieve the admin space data
+        admin_space_data = await services.espaceAdmin(db=db, user_id=user_id, org_id=org_id)
+
+        if admin_space_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Admin space data not found"
+            )
+
+        return admin_space_data
+
+    except Exception as e:
+        # Log the error (you can use a proper logging framework in your project)
+        logger.error(f"Error in admin_space: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while processing the request {e}"
+        )
 
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
 def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):

@@ -415,7 +415,3 @@ def create_session(db: Session, session: SessionCreateRequest, org_id: str):
     db.commit()
     db.refresh(db_session)
     return db_session
-
-
-def get_sessions(db: Session, org_id: str):
-    return db.query(models.ArenaSession).filter(models.ArenaSession.organisation_code == org_id).all()

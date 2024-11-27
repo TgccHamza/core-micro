@@ -38,7 +38,7 @@ from app.services import groups_by_game as services_groups_by_game
 from app.services import invite_managers as services_invite_managers
 from app.services import invite_players as services_invite_players
 from app.services import show_arena_by_game as services_show_arena_by_game
-from app.services import update_session as services_update_session
+from app.services import get_sessions as services_get_sessions
 
 router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])
@@ -321,9 +321,10 @@ async def remove_invited_players(
 
 
 @router.get("/sessions", response_model=list[SessionResponse])
-def list_sessions(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def list_sessions(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    return services_arena.get_sessions(db, org_id)
+    sessions = await services_get_sessions.get_sessions(db, org_id)
+    return sessions
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
