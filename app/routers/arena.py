@@ -344,21 +344,36 @@ async def list_sessions(db: Session = Depends(get_db), jwt_claims: Dict[Any, Any
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
 def get_session(session_id: str, db: Session = Depends(get_db), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
-    session = services_show_session.show_session(db, session_id, org_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
+    try:
+        org_id = jwt_claims.get("org_id")
+        session = services_show_session.show_session(db, session_id, org_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return session
+    except Exception as e:
+        # General error handling for unexpected issues
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while get the session: {str(e)}"
+        )
 
 
 @router.put("/sessions/{session_id}/config", response_model=SessionCreateResponse)
 def config_session(session_id: str, session: SessionConfigRequest, db: Session = Depends(get_db),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
     try:
-        return services_config_session.config_session(db, session_id, session, org_id)
-    except NoResultFound:
-        raise HTTPException(status_code=404, detail="Session not found")
+        org_id = jwt_claims.get("org_id")
+        try:
+            return services_config_session.config_session(db, session_id, session, org_id)
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+    except Exception as e:
+        # General error handling for unexpected issues
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while config the session: {str(e)}"
+        )
 
 @router.delete("/sessions/{session_id}")
 def delete_session(session_id: str, db: Session = Depends(get_db),

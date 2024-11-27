@@ -141,7 +141,7 @@ async def _get_players_by_session(db_session) -> List[GroupByGameSessionPlayerCl
             )
         else:
             player = GroupByGameSessionPlayerClientResponse(
-                user_id=db_player.user_id,
+                user_id=str(db_player.user_id) if db_player.user_id else None,
                 email=db_player.user_email,
                 first_name=db_player.user_name,
                 last_name=db_player.user_name
