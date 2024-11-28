@@ -19,6 +19,7 @@ def get_group(db: Session, group_id: str, org_id: str):
         # Log if the group was not found
         if not db_group:
             logger.warning(f"Group with ID {group_id} and organization code {org_id} not found.")
+            raise Exception(f"Group with ID {group_id} and organization code {org_id} not found.")
 
         return db_group
 

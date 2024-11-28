@@ -172,8 +172,16 @@ async def admin_space(
 
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
 async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
-    org_id = jwt_claims.get("org_id")
-    return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
+    try:
+        org_id = jwt_claims.get("org_id")
+        return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
+    except Exception as e:
+        # Log the error (you can use a proper logging framework in your project)
+        logger.error(f"Error in game_view: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while processing the request {e}"
+        )
 
 
 @client_router.post("/projects/{project_id}/favorite", response_model=FavoriteResponse)

@@ -2,6 +2,9 @@ import asyncio
 from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
+
+from sqlalchemy.orm import Session
+
 logger = logging.getLogger(__name__)
 from app.models import Project, ArenaSession, ArenaSessionPlayers, ProjectFavorite, Group, GroupUsers
 from app.payloads.response.EspaceAdminClientResponse import ArenaResponse, ManagerResponse, GroupResponse, \
@@ -75,7 +78,7 @@ async def _process_group_managers(
     return processed_managers
 
 
-async def fetch_project_details(db, org_id, current_time):
+async def fetch_project_details(db: Session, org_id: str, current_time):
     """
     Fetch project details for a given organization within the next month.
 
@@ -85,17 +88,13 @@ async def fetch_project_details(db, org_id, current_time):
     :return: List of project events
     """
     one_month_later = current_time + timedelta(days=31)
-
-    return await asyncio.to_thread(
-        _fetch_projects_by_criteria,
-        db,
-        org_id,
-        current_time,
-        one_month_later
-    )
+    return _fetch_projects_by_criteria(db,
+                                       org_id,
+                                       current_time,
+                                       one_month_later)
 
 
-def _fetch_projects_by_criteria(db, org_id, current_time, one_month_later):
+def _fetch_projects_by_criteria(db: Session, org_id: str, current_time, one_month_later):
     """
     Synchronous database query for projects.
 
@@ -174,7 +173,7 @@ async def _process_single_event(db, project):
     )
 
 
-async def fetch_favorite_projects(db, user_id):
+async def fetch_favorite_projects(db: Session, user_id: str):
     """
     Fetch and process favorite projects for a user.
 
@@ -230,7 +229,7 @@ async def _process_favorite_project(db, favorite_project):
     )
 
 
-async def fetch_recent_projects(db, org_id):
+async def fetch_recent_projects(db: Session, org_id):
     """
     Fetch recent projects for an organization.
 
@@ -285,7 +284,7 @@ async def _process_recent_project(db, project):
     )
 
 
-async def space_admin(db, user_id, org_id):
+async def space_admin(db: Session, user_id: str, org_id: str):
     """
     Comprehensive admin space retrieval with concurrent processing.
 
@@ -302,11 +301,15 @@ async def space_admin(db, user_id, org_id):
     recent_projects_coro = fetch_recent_projects(db, org_id)
 
     # Await all concurrent tasks
-    projects, favorite_projects, recent_projects = await asyncio.gather(
-        projects_coro,
-        favorite_projects_coro,
-        recent_projects_coro
-    )
+    # projects, favorite_projects, recent_projects = await asyncio.gather(
+    #     projects_coro,
+    #     favorite_projects_coro,
+    #     recent_projects_coro
+    # )
+
+    projects = await projects_coro
+    favorite_projects = await favorite_projects_coro
+    recent_projects = await recent_projects_coro
 
     # Process project events
     events = await process_project_events(db, projects)
