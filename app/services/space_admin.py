@@ -107,7 +107,7 @@ def _fetch_projects_by_criteria(db: Session, org_id: str, current_time, one_mont
     ).all()
 
 
-async def fetch_total_players(db, module_game_id):
+def fetch_total_players(db: Session, module_game_id):
     """
     Fetch total number of players for a specific module game.
 
@@ -115,14 +115,10 @@ async def fetch_total_players(db, module_game_id):
     :param module_game_id: Module game identifier
     :return: Total number of players
     """
-    return await asyncio.to_thread(
-        _count_session_players,
-        db,
-        module_game_id
-    )
+    return _count_session_players(db, module_game_id)
 
 
-def _count_session_players(db, module_game_id):
+def _count_session_players(db: Session, module_game_id):
     """
     Synchronous player count query.
 
@@ -135,7 +131,7 @@ def _count_session_players(db, module_game_id):
     ).count()
 
 
-async def process_project_events(db, projects):
+def process_project_events(db: Session, projects):
     """
     Process project events with concurrent player counting.
 
@@ -147,10 +143,10 @@ async def process_project_events(db, projects):
         _process_single_event(db, project)
         for project in projects
     ]
-    return await asyncio.gather(*events_tasks)
+    return events_tasks
 
 
-async def _process_single_event(db, project):
+async def _process_single_event(db: Session, project):
     """
     Process a single project event with player count.
 
@@ -158,7 +154,7 @@ async def _process_single_event(db, project):
     :param project: Project model instance
     :return: Processed event response
     """
-    total_players = await fetch_total_players(db, project.module_game_id)
+    total_players = fetch_total_players(db, project.module_game_id)
 
     return EventGameResponse(
         id=project.id,
@@ -193,7 +189,7 @@ def fetch_favorite_projects(db: Session, user_id: str):
     return favorite_tasks
 
 
-async def _process_favorite_project(db, favorite_project):
+async def _process_favorite_project(db: Session, favorite_project):
     """
     Process a single favorite project with details.
 
@@ -202,7 +198,7 @@ async def _process_favorite_project(db, favorite_project):
     :return: Favorite game response
     """
     project = favorite_project.project
-    total_players = await fetch_total_players(db, project.module_game_id)
+    total_players = fetch_total_players(db, project.module_game_id)
 
     return FavoriteGameResponse(
         id=project.id,
@@ -257,7 +253,7 @@ async def _process_recent_project(db, project):
     :param project: Project model instance
     :return: Recent game response
     """
-    total_players = await fetch_total_players(db, project.module_game_id)
+    total_players = fetch_total_players(db, project.module_game_id)
 
     return RecentGameResponse(
         id=project.id,
@@ -312,7 +308,7 @@ async def space_admin(db: Session, user_id: str, org_id: str):
     recent_projects = await asyncio.gather(*recent_projects_coro)
 
     # Process project events
-    events = await process_project_events(db, projects)
+    events = await asyncio.gather(*process_project_events(db, projects))
 
     return AdminSpaceClientResponse(
         events=events,
