@@ -206,6 +206,8 @@ async def _build_game_arenas(
     arena_map: Dict[int, GameViewArenaResponse] = {}
 
     for arena_session in game.arena_sessions:
+        if not arena_session.arena:
+            continue
         arena_id = arena_session.arena.id
 
         # Initialize arena response if not exists
@@ -248,7 +250,7 @@ async def gameView(
     metrics = _compute_game_metrics(db, game_id)
 
     # Build arenas with sessions and groups (pass db session)
-    arenas = _build_game_arenas(db, game)
+    arenas = await _build_game_arenas(db, game)
 
     # Prepare response
     return GameViewClientResponse(
@@ -286,8 +288,8 @@ def _compute_game_metrics(
     return {
         'total_managers': (
             db.query(GroupUsers)
-            .join(Group)
-            .join(GroupProjects)
+            .join(Group, Group.id == GroupUsers.group_id)
+            .join(GroupProjects, Group.id == GroupProjects.group_id)
             .filter(GroupProjects.project_id == game_id)
             .distinct(GroupUsers.user_id)
             .count()
@@ -299,8 +301,8 @@ def _compute_game_metrics(
         ),
         'total_players': (
             db.query(ArenaSessionPlayers)
-            .join(ArenaSession)
-            .filter(ArenaSession.player_module_id == game_id)
+            .join(ArenaSession, ArenaSession.id == ArenaSessionPlayers.session_id)
+            .filter(ArenaSession.project_id == game_id)
             .count()
         )
     }

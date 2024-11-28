@@ -1,9 +1,13 @@
+import sys
+sys.path.append('/app')
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.database import Base, get_db
 from main import app
 from fastapi.testclient import TestClient
+
 
 # SQLite in-memory database for testing
 SQLITE_TEST_DATABASE_URL = "sqlite:///:memory:"
