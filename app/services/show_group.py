@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def show_group(db: Session, group_id: str, org_id: str):
     try:
         group = get_group(db, group_id, org_id)
-        return process_group(db, group)
+        return await process_group(db, group)
     except Exception as e:
         raise e
 
