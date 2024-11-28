@@ -2,8 +2,8 @@ from typing import Any
 
 import httpx
 from fastapi import HTTPException
-
-from app.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from app.payloads.response.UserResponse import UserResponse
 
 

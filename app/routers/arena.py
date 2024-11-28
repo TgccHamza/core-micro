@@ -6,7 +6,6 @@ from starlette import status
 
 from app.exceptions import PlayerNotFoundError, NoResultFoundError
 from app.helpers import get_jwt_claims
-from app.logger import logger
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
 from app.models import ArenaSession, Group, GroupUsers, ArenaSessionPlayers, Project
@@ -54,6 +53,9 @@ from app.services import associate_arena_with_group as services_associate_arena_
 from app.services import dissociate_arena_from_group as services_dissociate_arena_from_group
 from app.services import remove_player_from_session as services_remove_player_from_session
 from app.services import  show_group as services_show_group
+
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     route_class=middlewareWrapper(middlewares=[ClientAuthMiddleware])

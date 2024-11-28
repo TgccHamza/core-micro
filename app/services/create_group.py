@@ -31,7 +31,7 @@ def _create_group(db: Session, group_name: str, org_id: str) -> models.Group:
     return db_group
 
 
-def _associate_projects_with_group(db: Session, group_id: int, project_ids: list):
+def _associate_projects_with_group(db: Session, group_id: str, project_ids: list):
     """
     Associates a list of project IDs with a group.
     """

@@ -1,14 +1,14 @@
 # router/project.py
-import logging
-import os
-from typing import Dict, Any, Annotated
+from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
 from app.helpers import get_jwt_claims
-from app.logger import logger
+import logging
+
+logger = logging.getLogger(__name__)
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.CollabAuthMiddleware import CollabAuthMiddleware
 from app.middlewares.MiddlewareWrapper import middlewareWrapper
@@ -27,13 +27,23 @@ from app.payloads.response.ModuleAdminResponse import ModuleAdminResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectClientWebResponse import ProjectClientWebResponse
 from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
-from app.routers import filepb2
-from app.routers import filegrpc
 from app.database import get_db
 from app.services import project as services
-import grpc
-
-from app.services.project import update_client_game, config_client_game
+from app.services import create_project as services_create_project
+from app.services import get_project as services_get_project
+from app.services import space_admin as services_space_admin
+from app.services import game_view as services_game_view
+from app.services import favorite_project as services_favorite_project
+from app.services import unfavorite_project as services_unfavorite_project
+from app.services import list_favorites as services_list_favorites
+from app.services import config_client_game as services_config_client_game
+from app.services import update_client_game as services_update_client_game
+from app.services import create_comment as services_create_comment
+from app.services import list_comments as services_list_comments
+from app.services import update_comment as services_update_comment
+from app.services import delete_comment as services_delete_comment
+from app.services import like_comment as services_like_comment
+from app.services import dislike_comment as services_dislike_comment
 
 admin_router = APIRouter(
     route_class=middlewareWrapper(middlewares=[CollabAuthMiddleware])
@@ -59,12 +69,12 @@ def get_project_modules(project_id: str, db: Session = Depends(get_db)):
 # Project Endpoints
 @admin_router.post("/projects", response_model=ProjectAdminResponse)
 def create_project(project: ProjectCreateRequest, db: Session = Depends(get_db)):
-    return services.create_project(db, project)
+    return services_create_project.create_project(db, dict(project))
 
 
 @admin_router.get("/projects/{project_id}", response_model=ProjectAdminResponse)
 def get_project(project_id: str, db: Session = Depends(get_db)):
-    return services.get_project(db, project_id)
+    return services_get_project.get_project(db, project_id)
 
 
 @admin_router.put("/projects/{project_id}", response_model=ProjectAdminResponse)
@@ -98,41 +108,20 @@ def delete_module(module_id: str, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
 
 
-@admin_router.post("/modules/{module_id}/upload")
-async def upload_file(module_id: str, file: UploadFile = File(description="Required file upload"),
-                      db: Session = Depends(get_db)):
+@admin_router.post("/modules/{module_id}/set-template")
+async def set_template_module(module_id: str, template_id: str,
+                              db: Session = Depends(get_db)):
     try:
-        print("Upload file begin upload")
-        if not file:
-            return {"message": "No upload file sent"}
-
-        # Read the file data
-        file_data = await file.read()
-
-        # Connect to the gRPC server
-        grpc_container = os.getenv("GRPC_CONTAINER", "grpc_url")
-        grpc_port = os.getenv("GRPC_PORT", "50051")
-
-        with grpc.insecure_channel(f"{grpc_container}:{grpc_port}") as channel:
-            # Update the stub to use the TemplateService
-            stub = filegrpc.TemplateServiceStub(channel)
-            # Create the request with the updated message type and fields
-            request = filepb2.UploadFileRequest(file_data=file_data, filename=f"module_id.zip")
-            response = stub.UploadFile(request)
-            # Return the response data
-            return services.set_template_module(db, module_id, response.file_id)
-
+        return services.set_template_module(db, module_id, template_id)
     except Exception as e:
         logging.error(f"Error in upload_file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await file.close()
 
 
 @client_router.get("/espace-admin", response_model=AdminSpaceClientResponse)
 async def admin_space(
-    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-    db: Session = Depends(get_db)
+        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+        db: Session = Depends(get_db)
 ):
     """
     Endpoint to retrieve admin space information for a client.
@@ -162,7 +151,7 @@ async def admin_space(
             )
 
         # Call the service function to retrieve the admin space data
-        admin_space_data = await services.espaceAdmin(db=db, user_id=user_id, org_id=org_id)
+        admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
 
         if admin_space_data is None:
             raise HTTPException(
@@ -180,10 +169,11 @@ async def admin_space(
             detail=f"An error occurred while processing the request {e}"
         )
 
+
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
-def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     org_id = jwt_claims.get("org_id")
-    return services.gameView(db=db, org_id=org_id, game_id=game_id)
+    return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
 
 
 @client_router.post("/projects/{project_id}/favorite", response_model=FavoriteResponse)
@@ -192,7 +182,7 @@ def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_j
     """Endpoint to add a project to favorites."""
 
     user_id = jwt_claims.get("uid")
-    return services.favorite_project(db=db, user_id=user_id, project_id=project_id)
+    return services_favorite_project.favorite_project(db=db, user_id=user_id, project_id=project_id)
 
 
 @client_router.delete("/projects/{project_id}/favorite")
@@ -202,14 +192,14 @@ def unfavorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get
 
     user_id = jwt_claims.get("uid")
 
-    return services.unfavorite_project(db=db, user_id=user_id, project_id=project_id)
+    return services_unfavorite_project.unfavorite_project(db=db, user_id=user_id, project_id=project_id)
 
 
 @client_router.get("/users/{user_id}/favorites", response_model=list[ProjectClientWebResponse])
 def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
     """Endpoint to list all favorite projects of a user."""
     user_id = jwt_claims.get("uid")
-    return services.list_favorites(db=db, user_id=user_id)
+    return services_list_favorites.list_favorites(db=db, user_id=user_id)
 
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
@@ -222,7 +212,7 @@ def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claim
     if not org_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing org ID in JWT claims.")
 
-    config_project = config_client_game(db=db, org_id=org_id, project_id=game_id)
+    config_project = services_config_client_game.config_client_game(db=db, org_id=org_id, project_id=game_id)
 
     if not config_project:
         raise HTTPException(status_code=404, detail="Game not found or could not be updated.")
@@ -245,7 +235,8 @@ def update_game(
     if not org_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing org ID in JWT claims.")
 
-    updated_project = update_client_game(db=db, org_id=org_id, project_id=game_id, update_data=update_data)
+    updated_project = services_update_client_game.update_client_game(db=db, org_id=org_id, project_id=game_id,
+                                                                     update_data=update_data)
 
     if not updated_project:
         raise HTTPException(status_code=404, detail="Game not found or could not be updated.")
@@ -261,7 +252,7 @@ def create_comment_endpoint(
         db: Session = Depends(get_db),
 ):
     user_id = jwt_claims.get("uid")
-    return services.create_comment(db, project_id, user_id, req.comment_text)
+    return services_create_comment.create_comment(db, project_id, user_id, req.comment_text)
 
 
 @client_router.get("/games/{project_id}/comments", response_model=list[ProjectCommentResponse])
@@ -269,7 +260,7 @@ def list_comments_endpoint(
         project_id: str,
         db: Session = Depends(get_db),
 ):
-    return services.list_comments(db, project_id)
+    return services_list_comments.list_comments(db, project_id)
 
 
 @client_router.put("/comments/{comment_id}", response_model=ProjectCommentResponse)
@@ -280,7 +271,7 @@ def update_comment_endpoint(
         db: Session = Depends(get_db),
 ):
     user_id = jwt_claims.get("uid")
-    return services.update_comment(db, comment_id, updated_data, user_id)
+    return services_update_comment.update_comment(db, comment_id, updated_data, user_id)
 
 
 @client_router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -290,18 +281,18 @@ def delete_comment_endpoint(
         db: Session = Depends(get_db),
 ):
     user_id = jwt_claims.get("uid")
-    return services.delete_comment(db, comment_id, user_id)
+    return services_delete_comment.delete_comment(db, comment_id, user_id)
 
 
 @client_router.post("/comments/{comment_id}/like", response_model=ProjectCommentResponse)
 def like_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
                           db: Session = Depends(get_db)):
     user_id = jwt_claims.get("uid")
-    return services.like_comment(db, comment_id, user_id)
+    return services_like_comment.like_comment(db, comment_id, user_id)
 
 
 @client_router.post("/comments/{comment_id}/dislike", response_model=ProjectCommentResponse)
-def like_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                          db: Session = Depends(get_db)):
+def dislike_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+                             db: Session = Depends(get_db)):
     user_id = jwt_claims.get("uid")
-    return services.dislike_comment(db, comment_id, user_id)
+    return services_dislike_comment.dislike_comment(db, comment_id, user_id)

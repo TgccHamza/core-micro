@@ -1,6 +1,8 @@
+import asyncio
+
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from app.models import ArenaSession, Project
+from app.models import ArenaSession, Project, GroupUsers, ArenaSessionPlayers
 from app.payloads.response.GroupByGameResponse import (
     GroupByGameResponse,
     GroupByGameArenaClientResponse,
@@ -8,6 +10,7 @@ from app.payloads.response.GroupByGameResponse import (
     GroupByGameSessionPlayerClientResponse,
     GroupByGameUserClientResponse
 )
+from app.payloads.response.UserResponse import UserResponse
 from app.services.user_service import get_user_service
 
 
@@ -125,15 +128,9 @@ async def _get_players_by_session(db_session) -> List[GroupByGameSessionPlayerCl
     """
     players = []
 
-    for db_player in db_session.players:
-        # Fetch user details using the UserServiceClient
-        user_details = None
-        if db_player.user_id and db_player.user_id != 'None':
-            user_details = await get_user_service().get_user_by_id(db_player.user_id)
+    players_details = await _fetch_users_concurrently(db_session.players)
 
-        if not user_details and db_player.user_email and db_player.user_email != 'None':
-            user_details = await get_user_service().get_user_by_email(db_player.user_email)
-
+    for db_player, user_details in zip(db_session.players, players_details):
         # Build player details
         if user_details:
             player = GroupByGameSessionPlayerClientResponse(
@@ -176,6 +173,26 @@ async def _fetch_user_details(user_id: Optional[str], user_email: Optional[str])
     return None
 
 
+async def _fetch_users_concurrently(users: List[ArenaSessionPlayers | GroupUsers]) -> List[Optional[UserResponse]]:
+    """
+    Fetch user details concurrently for multiple players.
+
+    Args:
+        users (List[ArenaSessionPlayers]): List of players to fetch details for
+
+    Returns:
+        List[Optional[UserResponse]]: List of user details
+    """
+    # Create tasks for concurrent user detail fetching
+    fetch_tasks = [
+        _fetch_user_details(user.user_id, user.user_email)
+        for user in users
+    ]
+
+    # Wait for all tasks to complete
+    return await asyncio.gather(*fetch_tasks)
+
+
 async def _get_managers_by_group(db_group) -> List[GroupByGameUserClientResponse]:
     """
     Fetches and enriches managers for a given group with user details.
@@ -188,9 +205,9 @@ async def _get_managers_by_group(db_group) -> List[GroupByGameUserClientResponse
     """
     managers = []
 
-    for db_manager in db_group.managers:
-        user_details = await _fetch_user_details(db_manager.user_id, db_manager.user_email)
+    manager_details = await _fetch_users_concurrently(db_group.managers)
 
+    for db_manager, user_details in zip(db_group.managers, manager_details):
         manager_response = GroupByGameUserClientResponse(
             id=str(db_manager.id) if db_manager.id else None,
             user_id=user_details.get("user_id") if user_details else db_manager.user_id,

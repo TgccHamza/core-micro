@@ -22,7 +22,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 import tempfile
-import app.logger
+import logging
+
+log_file = "uvicorn_logs.log"
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler(log_file),  # Save logs to a file
+                        logging.StreamHandler()  # Also log to console
+                    ])
+logger = logging.getLogger(__name__)
 
 
 print("Change tmp folder for uploading file")
@@ -233,14 +242,13 @@ def custom_openapi(schema_tag):
 # Endpoint to get the logs from the log file
 @app.get("/get-logs")
 async def get_logs():
-    log_file = app.logger.log_file
     if not os.path.exists(log_file):
-        app.logger.logger.error(f"Log file {log_file} does not exist.")
+        logger.error(f"Log file {log_file} does not exist.")
         raise HTTPException(status_code=404, detail="Log file not found.")
 
     # Return the log file as response
     try:
         return FileResponse(log_file, media_type='text/plain', filename=log_file)
     except Exception as e:
-        app.logger.logger.error(f"Error reading log file: {str(e)}")
+        logger.error(f"Error reading log file: {str(e)}")
         raise HTTPException(status_code=500, detail="Error reading log file.")

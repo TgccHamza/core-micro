@@ -22,7 +22,7 @@ class GameViewSessionResponse(BaseModel):
     players: List[GameViewSessionPlayerClientResponse]
 
 class GameViewManagerResponse(BaseModel):
-    id: str
+    user_id: Optional[str] = None
     email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
