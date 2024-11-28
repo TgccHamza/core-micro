@@ -66,7 +66,7 @@ async def _process_group_managers(
 
     for manager, user_detail in zip(db_group.managers, manager_details):
         processed_manager = ManagerResponse(
-            user_id=user_detail.get('user_id') if user_detail else manager.user_id,
+            user_id=user_detail.get('user_id') if user_detail else str(manager.user_id),
             email=user_detail.get('user_email') if user_detail else manager.user_email,
             first_name=user_detail.get('first_name') if user_detail else None,
             last_name=user_detail.get('last_name') if user_detail else None,
@@ -78,7 +78,7 @@ async def _process_group_managers(
     return processed_managers
 
 
-async def fetch_project_details(db: Session, org_id: str, current_time):
+def fetch_project_details(db: Session, org_id: str, current_time):
     """
     Fetch project details for a given organization within the next month.
 
@@ -173,7 +173,7 @@ async def _process_single_event(db, project):
     )
 
 
-async def fetch_favorite_projects(db: Session, user_id: str):
+def fetch_favorite_projects(db: Session, user_id: str):
     """
     Fetch and process favorite projects for a user.
 
@@ -190,7 +190,7 @@ async def fetch_favorite_projects(db: Session, user_id: str):
         for fav_project in favorite_projects
     ]
 
-    return await asyncio.gather(*favorite_tasks)
+    return favorite_tasks
 
 
 async def _process_favorite_project(db, favorite_project):
@@ -229,7 +229,7 @@ async def _process_favorite_project(db, favorite_project):
     )
 
 
-async def fetch_recent_projects(db: Session, org_id):
+def fetch_recent_projects(db: Session, org_id):
     """
     Fetch recent projects for an organization.
 
@@ -246,7 +246,7 @@ async def fetch_recent_projects(db: Session, org_id):
         for project in recent_projects
     ]
 
-    return await asyncio.gather(*recent_tasks)
+    return recent_tasks
 
 
 async def _process_recent_project(db, project):
@@ -307,9 +307,9 @@ async def space_admin(db: Session, user_id: str, org_id: str):
     #     recent_projects_coro
     # )
 
-    projects = await projects_coro
-    favorite_projects = await favorite_projects_coro
-    recent_projects = await recent_projects_coro
+    projects = projects_coro
+    favorite_projects = await asyncio.gather(*favorite_projects_coro)
+    recent_projects = await asyncio.gather(*recent_projects_coro)
 
     # Process project events
     events = await process_project_events(db, projects)

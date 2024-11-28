@@ -148,7 +148,7 @@ async def _process_session_players(session: ArenaSession) -> List[GameViewSessio
 
     for player, user_detail in zip(session.players, user_details):
         processed_player = GameViewSessionPlayerClientResponse(
-            user_id=user_detail.get('user_id') if user_detail else player.user_id,
+            user_id=user_detail.get('user_id') if user_detail else str(player.user_id),
             email=user_detail.get('user_email') if user_detail else player.user_email,
             first_name=user_detail.get('first_name') if user_detail else None,
             last_name=user_detail.get('last_name') if user_detail else None,
