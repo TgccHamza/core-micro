@@ -105,7 +105,8 @@ async def _process_favorite_project(db: AsyncSession, project):
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = dict()
-
+    print("_process_favorite_project: Users")
+    print(users)
     return FavoriteGameResponse(
         id=project.id,
         game_name=project.name,
@@ -165,8 +166,8 @@ async def _process_recent_project(db, project):
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = dict()
-
-
+    print("_process_recent_project: Users ==========================>")
+    print(users)
     return RecentGameResponse(
         id=project.id,
         game_name=project.name,
