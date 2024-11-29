@@ -120,7 +120,7 @@ async def _create_session_response(
     """
     players = await get_players_by_session(session.id, db)
     emails = await get_player_email_by_session(session.id, db)
-    if len(emails) > 0:
+    if len(emails) != 0:
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = list()

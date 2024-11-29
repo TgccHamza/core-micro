@@ -101,7 +101,7 @@ async def _process_favorite_project(db: AsyncSession, project):
     emails = await get_manager_email_by_game(project.id, db)
     print("Hello world =============================================")
     print(emails)
-    if len(emails) == 0:
+    if len(emails) != 0:
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = dict()
@@ -162,7 +162,7 @@ async def _process_recent_project(db, project):
     emails = await get_manager_email_by_game(project.id, db)
     print("Hello world =============================================")
     print(emails)
-    if len(emails) == 0:
+    if len(emails) != 0:
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = dict()
