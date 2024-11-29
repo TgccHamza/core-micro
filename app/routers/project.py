@@ -2,7 +2,7 @@
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.helpers import get_jwt_claims
@@ -27,7 +27,7 @@ from app.payloads.response.ModuleAdminResponse import ModuleAdminResponse
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
 from app.payloads.response.ProjectClientWebResponse import ProjectClientWebResponse
 from app.payloads.response.ProjectCommentResponse import ProjectCommentResponse
-from app.database import get_db
+from app.database import get_db_async
 from app.services import project as services
 from app.services import create_project as services_create_project
 from app.services import get_project as services_get_project
@@ -55,62 +55,62 @@ client_router = APIRouter(
 
 
 @admin_router.get("/projects", response_model=list[ProjectAdminResponse])
-async def get_projects(db: Session = Depends(get_db)):
+async def get_projects(db: AsyncSession = Depends(get_db_async)):
     """Endpoint to list all projects."""
     return await services.list_projects(db)
 
 
 @admin_router.get("/projects/{project_id}/modules", response_model=list[ModuleAdminResponse])
-def get_project_modules(project_id: str, db: Session = Depends(get_db)):
+def get_project_modules(project_id: str, db: AsyncSession = Depends(get_db_async)):
     """Endpoint to list all modules for a specific project."""
     return services.list_modules(db, project_id)
 
 
 # Project Endpoints
 @admin_router.post("/projects", response_model=ProjectAdminResponse)
-def create_project(project: ProjectCreateRequest, db: Session = Depends(get_db)):
+def create_project(project: ProjectCreateRequest, db: AsyncSession = Depends(get_db_async)):
     return services_create_project.create_project(db, dict(project))
 
 
 @admin_router.get("/projects/{project_id}", response_model=ProjectAdminResponse)
-def get_project(project_id: str, db: Session = Depends(get_db)):
+def get_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
     return services_get_project.get_project(db, project_id)
 
 
 @admin_router.put("/projects/{project_id}", response_model=ProjectAdminResponse)
-def update_project(project_id: str, project: ProjectUpdateRequest, db: Session = Depends(get_db)):
+def update_project(project_id: str, project: ProjectUpdateRequest, db: AsyncSession = Depends(get_db_async)):
     return services.update_project(db, project_id, project)
 
 
 @admin_router.delete("/projects/{project_id}", response_model=dict)
-def delete_project(project_id: str, db: Session = Depends(get_db)):
+def delete_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
     return services.delete_project(db, project_id)
 
 
 # ProjectModule Endpoints
 @admin_router.post("/modules", response_model=ModuleAdminResponse)
-def create_module(module: ModuleCreateRequest, db: Session = Depends(get_db)):
+def create_module(module: ModuleCreateRequest, db: AsyncSession = Depends(get_db_async)):
     return services.create_module(db, module)
 
 
 @admin_router.get("/modules/{module_id}", response_model=ModuleAdminResponse)
-def get_module(module_id: str, db: Session = Depends(get_db)):
+def get_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
     return services.get_module(db, module_id)
 
 
 @admin_router.put("/modules/{module_id}", response_model=ModuleAdminResponse)
-def update_module(module_id: str, module: ModuleUpdateRequest, db: Session = Depends(get_db)):
+def update_module(module_id: str, module: ModuleUpdateRequest, db: AsyncSession = Depends(get_db_async)):
     return services.update_module(db, module_id, module)
 
 
 @admin_router.delete("/modules/{module_id}", response_model=dict)
-def delete_module(module_id: str, db: Session = Depends(get_db)):
+def delete_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
     return services.delete_module(db, module_id)
 
 
 @admin_router.post("/modules/{module_id}/set-template")
 async def set_template_module(module_id: str, template_id: str,
-                              db: Session = Depends(get_db)):
+                              db: AsyncSession = Depends(get_db_async)):
     try:
         return services.set_template_module(db, module_id, template_id)
     except Exception as e:
@@ -121,7 +121,7 @@ async def set_template_module(module_id: str, template_id: str,
 @client_router.get("/espace-admin", response_model=AdminSpaceClientResponse)
 async def admin_space(
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db_async)
 ):
     """
     Endpoint to retrieve admin space information for a client.
@@ -132,7 +132,7 @@ async def admin_space(
 
     Parameters:
     - jwt_claims (Dict): The JWT claims, which include the `org_id` and `uid`.
-    - db (Session): The database session, injected through dependency.
+    - db (AsyncSession): The database AsyncSession, injected through dependency.
 
     Returns:
     - AdminSpaceClientResponse: The response model containing admin space details.
@@ -171,7 +171,7 @@ async def admin_space(
 
 
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
-async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: AsyncSession = Depends(get_db_async)):
     try:
         org_id = jwt_claims.get("org_id")
         return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
@@ -186,7 +186,7 @@ async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_c
 
 @client_router.post("/projects/{project_id}/favorite", response_model=FavoriteResponse)
 def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                     db: Session = Depends(get_db)):
+                     db: AsyncSession = Depends(get_db_async)):
     """Endpoint to add a project to favorites."""
 
     user_id = jwt_claims.get("uid")
@@ -195,7 +195,7 @@ def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_j
 
 @client_router.delete("/projects/{project_id}/favorite")
 def unfavorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                       db: Session = Depends(get_db)):
+                       db: AsyncSession = Depends(get_db_async)):
     """Endpoint to remove a project from favorites."""
 
     user_id = jwt_claims.get("uid")
@@ -204,14 +204,14 @@ def unfavorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get
 
 
 @client_router.get("/users/{user_id}/favorites", response_model=list[ProjectClientWebResponse])
-def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: AsyncSession = Depends(get_db_async)):
     """Endpoint to list all favorite projects of a user."""
     user_id = jwt_claims.get("uid")
     return services_list_favorites.list_favorites(db=db, user_id=user_id)
 
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
-def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Session = Depends(get_db)):
+def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: AsyncSession = Depends(get_db_async)):
     """
     Endpoint to get the game configuration.
     """
@@ -233,7 +233,7 @@ def update_game(
         game_id: str,
         update_data: GameUpdateRequest,
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db_async),
 ):
     """
     Endpoint to update a game project.
@@ -257,7 +257,7 @@ def create_comment_endpoint(
         project_id: str,
         req: ProjectCommentCreateRequest,
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db_async),
 ):
     user_id = jwt_claims.get("uid")
     return services_create_comment.create_comment(db, project_id, user_id, req.comment_text)
@@ -266,7 +266,7 @@ def create_comment_endpoint(
 @client_router.get("/games/{project_id}/comments", response_model=list[ProjectCommentResponse])
 def list_comments_endpoint(
         project_id: str,
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db_async),
 ):
     return services_list_comments.list_comments(db, project_id)
 
@@ -276,7 +276,7 @@ def update_comment_endpoint(
         comment_id: str,
         updated_data: ProjectCommentUpdateRequest,
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db_async),
 ):
     user_id = jwt_claims.get("uid")
     return services_update_comment.update_comment(db, comment_id, updated_data, user_id)
@@ -286,7 +286,7 @@ def update_comment_endpoint(
 def delete_comment_endpoint(
         comment_id: str,
         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db_async),
 ):
     user_id = jwt_claims.get("uid")
     return services_delete_comment.delete_comment(db, comment_id, user_id)
@@ -294,13 +294,13 @@ def delete_comment_endpoint(
 
 @client_router.post("/comments/{comment_id}/like", response_model=ProjectCommentResponse)
 def like_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                          db: Session = Depends(get_db)):
+                          db: AsyncSession = Depends(get_db_async)):
     user_id = jwt_claims.get("uid")
     return services_like_comment.like_comment(db, comment_id, user_id)
 
 
 @client_router.post("/comments/{comment_id}/dislike", response_model=ProjectCommentResponse)
 def dislike_comment_endpoint(comment_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                             db: Session = Depends(get_db)):
+                             db: AsyncSession = Depends(get_db_async)):
     user_id = jwt_claims.get("uid")
     return services_dislike_comment.dislike_comment(db, comment_id, user_id)

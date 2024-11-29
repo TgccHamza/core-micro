@@ -1,6 +1,7 @@
 import os
 import sys
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -12,9 +13,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
 from fastapi.openapi.utils import get_openapi
-from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.database import get_db, DATABASE_URL
+from app.database import get_db_async, DATABASE_URL
 from alembic.config import Config
 from alembic import command
 from fastapi.middleware.cors import CORSMiddleware
@@ -118,10 +118,10 @@ async def generate_migrations():
 
 
 @app.get("/health", response_model=Dict[str, Any])
-async def health_game(db: Session = Depends(get_db)):
+async def health_game(db: AsyncSession = Depends(get_db_async)):
     try:
         # Attempt to execute a simple query to check if the database connection works
-        db.execute(text("SELECT 1"))
+        await db.execute(text("SELECT 1"))
         return JSONResponse(content={'status': 'Healthy', 'message': 'Database connected successfully'})
     except Exception as e:
         print(f"error ==> {str(e)} \n")

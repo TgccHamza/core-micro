@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException
 import logging
+
 logger = logging.getLogger(__name__)
 from app.payloads.response.UserResponse import UserResponse
 
@@ -44,6 +45,42 @@ class UserServiceClient:
         except httpx.HTTPStatusError as e:
             logger.error(f"User service error: {response.json().get('detail', str(e))}")
             return None
+
+    async def get_users_by_email(self, emails: list[str]) -> dict[str, UserResponse]:
+        items = dict()
+        url = f"{self.base_url}/users/bulk/emails"
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json={'email': emails})
+                response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
+                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                    data = response.json()
+                    users = data.get("users", [])  # Ensure we handle empty or invalid users gracefully
+                    for user in users:
+                        full_name = user.get("name",
+                                             "").strip()  # Ensure we handle empty or invalid full_name gracefully
+                        if " " in full_name:
+                            first_name, last_name = full_name.split(" ", 1)  # Split only on the first space
+                        else:
+                            first_name = full_name  # If only one name is provided, treat it as the first name
+                            last_name = None  # No last name in this case
+
+                        items[user.get('email')] = UserResponse(
+                            user_id=user.get("user_id", None),
+                            email=user.get("email", None),
+                            user_email=user.get("email", None),
+                            username=user.get("username", None),
+                            full_name=full_name,
+                            user_name=full_name,  # Still use full_name here
+                            first_name=first_name,
+                            last_name=last_name)
+                return items
+        except httpx.RequestError as e:
+            logger.error(f"Error connecting to user service: {str(e)}")
+            return items
+        except httpx.HTTPStatusError as e:
+            logger.error(f"User service error: {response.json().get('detail', str(e))}")
+            return items
 
     async def get_user_by_id(self, code: str) -> UserResponse | None:
         url = f"{self.base_url}/users/{code}"

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
@@ -7,12 +7,14 @@ from app.payloads.request.ModuleCreateRequest import ModuleCreateRequest
 from app.payloads.request.ModuleUpdateRequest import ModuleUpdateRequest
 from app.payloads.request.ProjectUpdateRequest import ProjectUpdateRequest
 from app.payloads.response.ProjectAdminResponse import ProjectAdminResponse
+from app.repositories.get_all_projects import get_all_projects
+from app.repositories.get_all_projects_by_org import get_all_projects_by_org
 from app.services.organisation_service import get_organisation_service
 
 
-async def list_projects(db: Session):
+async def list_projects(db: AsyncSession):
     organisation_service = get_organisation_service()
-    projects = db.query(models.Project).all()
+    projects = await get_all_projects(db)
     result = []
     for project in projects:
         organisation_name = await organisation_service.get_organisation_name(str(project.organisation_code))
@@ -32,12 +34,12 @@ async def list_projects(db: Session):
     return result
 
 
-def list_modules(db: Session, project_id: str):
+def list_modules(db: AsyncSession, project_id: str):
     """Retrieve a list of modules for a specific project."""
     return db.query(models.ProjectModule).filter(models.ProjectModule.project_id == project_id).all()
 
 
-def update_project(db: Session, project_id: str, project: ProjectUpdateRequest):
+def update_project(db: AsyncSession, project_id: str, project: ProjectUpdateRequest):
     db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -48,7 +50,7 @@ def update_project(db: Session, project_id: str, project: ProjectUpdateRequest):
     return db_project
 
 
-def delete_project(db: Session, project_id: str):
+def delete_project(db: AsyncSession, project_id: str):
     db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -57,7 +59,7 @@ def delete_project(db: Session, project_id: str):
     return {"message": "Project deleted successfully"}
 
 
-def create_module(db: Session, module: ModuleCreateRequest):
+def create_module(db: AsyncSession, module: ModuleCreateRequest):
     db_module = models.ProjectModule(**module.dict())
     db.add(db_module)
     try:
@@ -69,14 +71,14 @@ def create_module(db: Session, module: ModuleCreateRequest):
     return db_module
 
 
-def get_module(db: Session, module_id: str):
+def get_module(db: AsyncSession, module_id: str):
     module = db.query(models.ProjectModule).filter(models.ProjectModule.id == module_id).first()
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
     return module
 
 
-def update_module(db: Session, module_id: str, module: ModuleUpdateRequest):
+def update_module(db: AsyncSession, module_id: str, module: ModuleUpdateRequest):
     db_module = db.query(models.ProjectModule).filter(models.ProjectModule.id == module_id).first()
     if not db_module:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -87,7 +89,7 @@ def update_module(db: Session, module_id: str, module: ModuleUpdateRequest):
     return db_module
 
 
-def delete_module(db: Session, module_id: str):
+def delete_module(db: AsyncSession, module_id: str):
     db_module = db.query(models.ProjectModule).filter(models.ProjectModule.id == module_id).first()
     if not db_module:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -96,7 +98,7 @@ def delete_module(db: Session, module_id: str):
     return {"message": "Module deleted successfully"}
 
 
-def set_template_module(db: Session, module_id: str, template_code: str):
+def set_template_module(db: AsyncSession, module_id: str, template_code: str):
     """Set the template for a specific module."""
     # Retrieve the module
     module = db.query(models.ProjectModule).filter(models.ProjectModule.id == module_id).first()

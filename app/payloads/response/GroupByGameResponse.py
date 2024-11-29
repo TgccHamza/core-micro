@@ -14,30 +14,9 @@ class GroupByGameUserClientResponse(BaseModel):
     first_name: Optional[str] = ""
     last_name: Optional[str] = ""
 
-
-class GroupByGameSessionPlayerClientResponse(BaseModel):
-    user_id: Optional[str] = None
-    email: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    picture: Optional[str] = None
-
-
-class GroupByGameArenaSessionResponse(BaseModel):
-    id: str
-    period_type: Optional[PeriodType]
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    access_status: Optional[AccessStatus]
-    session_status: Optional[SessionStatus]
-    view_access: Optional[ViewAccess]
-    players: List[GroupByGameSessionPlayerClientResponse]
-
-
 class GroupByGameArenaClientResponse(BaseModel):
     id: str
     name: str
-    sessions: List[GroupByGameArenaSessionResponse] = []
 
 
 class GroupByGameResponse(BaseModel):

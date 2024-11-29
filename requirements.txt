@@ -13,3 +13,4 @@ pyjwt
 httpx
 asyncio
 pytest
+aiomysql

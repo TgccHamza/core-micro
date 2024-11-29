@@ -1,51 +1,28 @@
-import asyncio
-from typing import List, Optional, Dict
-
-from fastapi import HTTPException
+from typing import List, Optional, Dict, Sequence
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 import logging
+
+from app.repositories.get_arena_by_id import get_arena_by_id
+from app.repositories.get_game_by_id import get_game_by_id
+from app.repositories.get_group_by_arena import get_group_by_arena
+from app.repositories.get_manager_by_group import get_manager_by_group
+from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_players_by_session import get_players_by_session
+from app.repositories.get_session_by_game import get_session_by_game
+from app.repositories.get_total_groups_by_game import get_total_groups_by_game
+from app.repositories.get_total_managers_by_game import get_total_managers_by_game
+from app.repositories.get_total_players_by_game import get_total_players_by_game
+
 logger = logging.getLogger(__name__)
 
-from app.models import ArenaSessionPlayers, ArenaSession, Project, Arena, GroupUsers, Group, GroupProjects
+from app.models import ArenaSessionPlayers, ArenaSession, Project, Arena
 from app.payloads.response.GameViewClientResponse import GameViewClientResponse, GameViewArenaResponse, \
     GameViewSessionResponse, GameViewSessionPlayerClientResponse, GameViewGroupResponse, GameViewManagerResponse
 from app.payloads.response.UserResponse import UserResponse
 from app.services.user_service import get_user_service
-
-
-def _fetch_game_with_relations(
-        db: Session,
-        org_id: str,
-        game_id: str
-) -> Project:
-    """
-    Fetch game with eager loading of related data.
-
-    Args:
-        db (Session): Database session
-        org_id (str): Organization identifier
-        game_id (int): Game identifier
-
-    Returns:
-        models.Project: Game with loaded relations
-
-    Raises:
-        HTTPException: If game is not found
-    """
-    game = (
-        db.query(Project)
-        .filter(
-            Project.organisation_code == org_id,
-            Project.id == game_id
-        )
-        .first()
-    )
-
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-
-    return game
 
 
 def _parse_tags(tags: Optional[str]) -> List[str]:
@@ -65,88 +42,54 @@ def _parse_tags(tags: Optional[str]) -> List[str]:
     ]
 
 
-async def _fetch_user_details(user_id: str, user_email: str) -> UserResponse | None:
-    if user_id and user_id != 'None':
-        try:
-            return await get_user_service().get_user_by_id(user_id)
-        except Exception as e:
-            logger.error(f"Error fetching user by ID {user_id}: {str(e)}")
-    elif user_email and user_email != 'None':
-        try:
-            return await get_user_service().get_user_by_email(user_email)
-        except Exception as e:
-            logger.error(f"Error fetching user by email {user_email}: {str(e)}")
-    return None
-
-
-async def _fetch_users_concurrently(users: List[ArenaSessionPlayers | GroupUsers]) -> List[Optional[UserResponse]]:
+async def _get_managers_by_group(db_session: AsyncSession, group_id: str, users: dict[str, UserResponse]) -> List[
+    GameViewManagerResponse]:
     """
-    Fetch user details concurrently for multiple players.
+    Fetches and enriches managers for a given group with user details.
 
     Args:
-        players (List[ArenaSessionPlayers]): List of players to fetch details for
+        db_session: The database group object.
+        group_id: The group
+        users: The users managers
 
     Returns:
-        List[Optional[UserResponse]]: List of user details
+        List[GroupByGameUserClientResponse]: A list of enriched manager responses.
     """
-    # Create tasks for concurrent user detail fetching
-    fetch_tasks = [
-        _fetch_user_details(user.user_id, user.user_email)
-        for user in users
-    ]
+    managers = []
+    db_managers = await get_manager_by_group(group_id, db_session)
 
-    # Wait for all tasks to complete
-    return await asyncio.gather(*fetch_tasks)
-
-
-async def _process_group_managers(
-        db_group: Group
-) -> List[GameViewManagerResponse]:
-    """
-    Process group managers with concurrent user details fetching.
-
-    Args:
-        db_group (Group): Group
-
-    Returns:
-        List[GameViewManagerResponse]: Processed manager details
-    """
-    # Fetch all manager details concurrently
-    manager_details = await _fetch_users_concurrently(db_group.managers)
-
-    processed_managers = []
-
-    for manager, user_detail in zip(db_group.managers, manager_details):
-        processed_manager = GameViewManagerResponse(
-            user_id=user_detail.get('user_id') if user_detail else manager.user_id,
-            email=user_detail.get('user_email') if user_detail else manager.user_email,
-            first_name=user_detail.get('first_name') if user_detail else None,
-            last_name=user_detail.get('last_name') if user_detail else None,
-            picture=user_detail.get('picture') if user_detail else None
+    for db_manager in db_managers:
+        user_details = users.get(db_manager.user_id, None)
+        manager_response = GameViewManagerResponse(
+            id=str(db_manager.id) if db_manager.id else None,
+            user_id=user_details.get("user_id") if user_details else db_manager.user_id,
+            user_email=user_details.get("user_email") if user_details else db_manager.user_email,
+            first_name=user_details.get("first_name") if user_details else db_manager.first_name,
+            last_name=user_details.get("last_name") if user_details else db_manager.last_name,
         )
 
-        processed_managers.append(processed_manager)
+        managers.append(manager_response)
 
-    return processed_managers
+    return managers
 
-
-
-async def _process_session_players(session: ArenaSession) -> List[GameViewSessionPlayerClientResponse]:
+async def _process_session_players(players: Sequence[ArenaSessionPlayers], users: dict[str, UserResponse]) -> List[GameViewSessionPlayerClientResponse]:
     """
     Process players for a given session with enhanced user detail retrieval.
 
     Args:
-        session (ArenaSession): Arena session
+        users (ArenaSession): Arena session
 
     Returns:
         List[GameViewSessionPlayerClientResponse]: Processed player details
     """
     # Fetch all user details concurrently
-    user_details = await _fetch_users_concurrently(session.players)
-
     processed_players = []
 
-    for player, user_detail in zip(session.players, user_details):
+    print("=================================")
+    print(users)
+    for player in players:
+        user_detail = users.get(player.user_email, None)
+        print(user_detail)
         processed_player = GameViewSessionPlayerClientResponse(
             user_id=user_detail.get('user_id') if user_detail else str(player.user_id),
             email=user_detail.get('user_email') if user_detail else player.user_email,
@@ -160,11 +103,10 @@ async def _process_session_players(session: ArenaSession) -> List[GameViewSessio
     return processed_players
 
 
-
 # Update the session response creation in the previous function
 async def _create_session_response(
         session: ArenaSession,
-        db: Session
+        db: AsyncSession
 ) -> GameViewSessionResponse:
     """
     Create detailed session response with processed players.
@@ -176,6 +118,15 @@ async def _create_session_response(
     Returns:
         GameViewSessionResponse: Structured session response
     """
+    players = await get_players_by_session(session.id, db)
+    emails = await get_player_email_by_session(session.id, db)
+    if len(emails) > 0:
+        users = await get_user_service().get_users_by_email(list(emails))
+    else:
+        users = list()
+    print("=========== GameViewSessionResponse ============")
+    print(emails)
+    print(users)
     return GameViewSessionResponse(
         id=session.id,
         period_type=session.period_type,
@@ -184,13 +135,13 @@ async def _create_session_response(
         access_status=session.access_status,
         session_status=session.session_status,
         view_access=session.view_access,
-        players=await _process_session_players(session)
+        players=await _process_session_players(players, users)
     )
 
 
 # Modify the _build_game_arenas function to pass db session
 async def _build_game_arenas(
-        db: Session,
+        db: AsyncSession,
         game: Project
 ) -> List[GameViewArenaResponse]:
     """
@@ -203,16 +154,17 @@ async def _build_game_arenas(
     Returns:
         List[GameViewArenaResponse]: Detailed arena responses
     """
-    arena_map: Dict[int, GameViewArenaResponse] = {}
-
-    for arena_session in game.arena_sessions:
-        if not arena_session.arena:
+    arena_map: Dict[str, GameViewArenaResponse] = {}
+    arena_sessions = await get_session_by_game(game.id, db)
+    for arena_session in arena_sessions:
+        db_arena = await get_arena_by_id(arena_session.arena_id, db)
+        if not db_arena:
             continue
-        arena_id = arena_session.arena.id
+        arena_id = db_arena.id
 
         # Initialize arena response if not exists
         if arena_id not in arena_map:
-            arena_map[arena_id] = await _create_arena_response(arena_session.arena)
+            arena_map[arena_id] = await _create_arena_response(db_arena, db)
 
         # Add session to arena (pass db session)
         arena_map[arena_id].sessions.append(
@@ -224,7 +176,7 @@ async def _build_game_arenas(
 
 # Update the main gameView function to pass db session to child functions
 async def gameView(
-        db: Session,
+        db: AsyncSession,
         org_id: str,
         game_id: str
 ) -> GameViewClientResponse:
@@ -232,10 +184,9 @@ async def gameView(
     Retrieve comprehensive game view with optional detailed information.
 
     Args:
-        db (Session): Database session
+        db (AsyncSession): Database session
         org_id (str): Organization identifier
         game_id (str): Game identifier
-        detailed (bool, optional): Flag to fetch additional details. Defaults to False.
 
     Returns:
         GameViewClientResponse: Comprehensive game view
@@ -244,10 +195,10 @@ async def gameView(
         HTTPException: If game is not found
     """
     # Fetch game with optimized query
-    game = _fetch_game_with_relations(db, org_id, game_id)
+    game = await get_game_by_id(game_id, org_id, db)
 
     # Compute aggregated metrics
-    metrics = _compute_game_metrics(db, game_id)
+    metrics = await _compute_game_metrics(db, game_id)
 
     # Build arenas with sessions and groups (pass db session)
     arenas = await _build_game_arenas(db, game)
@@ -271,8 +222,8 @@ async def gameView(
     )
 
 
-def _compute_game_metrics(
-        db: Session,
+async def _compute_game_metrics(
+        db: AsyncSession,
         game_id: str
 ) -> Dict[str, int]:
     """
@@ -286,30 +237,14 @@ def _compute_game_metrics(
         Dict[str, int]: Game metrics
     """
     return {
-        'total_managers': (
-            db.query(GroupUsers)
-            .join(Group, Group.id == GroupUsers.group_id)
-            .join(GroupProjects, Group.id == GroupProjects.group_id)
-            .filter(GroupProjects.project_id == game_id)
-            .distinct(GroupUsers.user_id)
-            .count()
-        ),
-        'total_groups': (
-            db.query(GroupProjects)
-            .filter(GroupProjects.project_id == game_id)
-            .count()
-        ),
-        'total_players': (
-            db.query(ArenaSessionPlayers)
-            .join(ArenaSession, ArenaSession.id == ArenaSessionPlayers.session_id)
-            .filter(ArenaSession.project_id == game_id)
-            .count()
-        )
+        'total_managers': (await get_total_managers_by_game(game_id, db)),
+        'total_groups': (await get_total_groups_by_game(game_id, db)),
+        'total_players': (await get_total_players_by_game(game_id, db)),
     }
 
 
 async def _create_arena_response(
-        arena: Arena
+        arena: Arena, db: AsyncSession
 ) -> GameViewArenaResponse:
     """
     Create arena response with group details.
@@ -325,13 +260,18 @@ async def _create_arena_response(
         name=arena.name,
         sessions=[]
     )
-
-    if arena.groups:
-        first_group = arena.groups[0]
+    group = await get_group_by_arena(arena.id, db)
+    if group:
+        first_group = group
+        manager_emails = await get_manager_email_by_group(first_group.id, db)
+        if len(manager_emails) > 0:
+            users = await get_user_service().get_users_by_email(list(manager_emails))
+        else:
+            users = list()
         arena_resp.group = GameViewGroupResponse(
             id=first_group.id,
             name=first_group.name,
-            managers=await _process_group_managers(first_group)
+            managers=await _get_managers_by_group(db, first_group.id, users)
         )
 
     return arena_resp
