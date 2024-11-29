@@ -31,6 +31,9 @@ logging.basicConfig(level=logging.INFO,
                         logging.FileHandler(log_file),  # Save logs to a file
                         logging.StreamHandler()  # Also log to console
                     ])
+
+logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+
 logger = logging.getLogger(__name__)
 
 

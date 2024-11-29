@@ -12,7 +12,7 @@ DB_NAME = os.getenv("DB_NAME", "db_name")
 DATABASE_URL = f"mysql+aiomysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Create the SQLAlchemy async engine
-async_engine = create_async_engine(DATABASE_URL, future=True, echo=True)
+async_engine = create_async_engine(DATABASE_URL, future=True, echo=False)
 
 # Create a configured "AsyncSession" class
 AsyncSessionLocal = sessionmaker(
