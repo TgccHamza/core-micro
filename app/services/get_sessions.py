@@ -1,21 +1,31 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
+from typing import List, Sequence
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-from app.models import ArenaSession
+from app.models import ArenaSession, Arena, Project
 
 from app.payloads.response.SessionResponse import ArenaGroupResponse, ArenaGroupUserResponse, SessionResponse, \
     ProjectResponse, ArenaResponse, SessionPlayerClientResponse
+from app.payloads.response.UserResponse import UserResponse
+from app.repositories.get_arena_by_id import get_arena_by_id
+from app.repositories.get_game_by_id import get_game_by_id
+from app.repositories.get_groups_by_arena import get_groups_by_arena
+from app.repositories.get_manager_by_group import get_manager_by_group
+from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_players_by_session import get_players_by_session
+from app.repositories.get_sessions_by_org import get_sessions_by_org
 from app.services.user_service import get_user_service
 
 
-async def get_sessions(db: Session, org_id: str) -> List[SessionResponse]:
+async def get_sessions(db: AsyncSession, org_id: str) -> List[SessionResponse]:
     """
     Retrieves a list of ArenaSession records for a specific organization and maps them to SessionResponse.
     """
     validate_organisation_id(org_id)
     try:
-        sessions_query = retrieve_sessions_from_db(db, org_id)
-        return await map_sessions_to_responses(sessions_query)
+        sessions = await get_sessions_by_org(org_id, db)
+        return await map_sessions_to_responses(sessions, db)
     except SQLAlchemyError as e:
         handle_db_error(org_id, e)
     except Exception as e:
@@ -30,14 +40,7 @@ def validate_organisation_id(org_id: str):
         raise ValueError("Organisation ID cannot be empty or None")
 
 
-def retrieve_sessions_from_db(db: Session, org_id: str) -> List[ArenaSession]:
-    """
-    Retrieve the list of ArenaSession from the database based on the organization ID.
-    """
-    return db.query(ArenaSession).filter(ArenaSession.organisation_code == org_id).all()
-
-
-async def map_sessions_to_responses(sessions_query: List[ArenaSession]) -> List[SessionResponse]:
+async def map_sessions_to_responses(sessions_query: Sequence[ArenaSession], db: AsyncSession) -> List[SessionResponse]:
     """
     Map the retrieved ArenaSession records to a list of SessionResponse objects.
     """
@@ -46,15 +49,25 @@ async def map_sessions_to_responses(sessions_query: List[ArenaSession]) -> List[
 
     sessions = []
     for session in sessions_query:
-        session_response = await map_session_to_response(session)
+        session_response = await map_session_to_response(db, session)
         sessions.append(session_response)
     return sessions
 
 
-async def map_session_to_response(session: ArenaSession) -> SessionResponse:
+async def map_session_to_response(db: AsyncSession, session: ArenaSession) -> SessionResponse:
     """
     Maps a single ArenaSession to a SessionResponse.
     """
+
+    arena = await get_arena_by_id(session.arena_id, db)
+    project = await get_game_by_id(session.project_id, session.organisation_code, db)
+    players = await get_players_by_session(session.id, db)
+    emails = await get_player_email_by_session(session.id, db)
+    if len(emails) != 0:
+        users = await get_user_service().get_users_by_email(list(emails))
+    else:
+        users = {}
+
     return SessionResponse(
         id=session.id,
         arena_id=session.arena_id,
@@ -65,13 +78,13 @@ async def map_session_to_response(session: ArenaSession) -> SessionResponse:
         access_status=session.access_status,
         session_status=session.session_status,
         view_access=session.view_access,
-        project=map_project(session.project),
-        arena=await _map_arena(session.arena),
-        players=await _map_players(session.players)
+        project=map_project(project),
+        arena=await _map_arena(arena, db),
+        players=await _map_players(players, users)
     )
 
 
-def map_project(project) -> ProjectResponse | None:
+def map_project(project: Project) -> ProjectResponse | None:
     """
     Maps the Project model to ProjectResponse.
     """
@@ -93,91 +106,73 @@ def map_project(project) -> ProjectResponse | None:
     )
 
 
-async def _map_arena(arena) -> ArenaResponse | None:
+async def _map_arena(arena: Arena, db: AsyncSession) -> ArenaResponse | None:
     """
     Maps the Arena model to ArenaResponse.
     """
     if not arena:
         return None
 
+    groups = await get_groups_by_arena(arena.id, db)
     return ArenaResponse(
         id=arena.id,
         name=arena.name,
-        groups=[await _map_arena_group(group) for group in arena.groups]
+        groups=[await _map_arena_group(group, db) for group in groups]
     )
 
 
-async def _map_arena_group(group) -> ArenaGroupResponse:
+async def _map_arena_group(group, db: AsyncSession) -> ArenaGroupResponse:
     """
     Maps ArenaGroup model to ArenaGroupResponse.
     """
+    managers = await get_manager_by_group(group.id, db)
+    emails = await get_manager_email_by_group(group.id, db)
+    if len(emails) != 0:
+        users = await get_user_service().get_users_by_email(list(emails))
+    else:
+        users = {}
+
     return ArenaGroupResponse(
         id=group.id,
         name=group.name,
-        managers=[await _map_group_manager(user) for user in group.managers]
+        managers=[await _map_group_manager(user, users) for user in managers]
     )
 
 
-async def _map_group_manager(user) -> ArenaGroupUserResponse:
-    user_details = None
-    if user.user_id and user.user_id != 'None':
-        user_details = await get_user_service().get_user_by_id(user.user_id)
+async def _map_group_manager(user, users: dict[str, UserResponse]) -> ArenaGroupUserResponse:
+    user_details = users.get(user.user_email, None)
 
-    if not user_details and user.user_email and user.user_email != 'None':
-        user_details = await get_user_service().get_user_by_email(user.user_email)
-
-    # Build player details
-    if user_details:
-        player = ArenaGroupUserResponse(
-            **dict(user_details)
-        )
-    else:
-        player = ArenaGroupUserResponse(
-            user_id=user.user_id,
-            email=user.user_email,
-            first_name=user.first_name,
-            last_name=user.last_name
-        )
     """
     Maps ArenaGroup model to ArenaGroupResponse.
     """
-    return player
+    return ArenaGroupUserResponse(
+        user_id=user_details.user_id if user_details else user.user_id,
+        email=user_details.user_email if user_details else user.user_email,
+        first_name=user_details.first_name if user_details else user.first_name,
+        last_name=user_details.last_name if user_details else user.last_name
+    )
 
 
-async def _map_players(players) -> List[SessionPlayerClientResponse]:
+async def _map_players(players, users) -> List[SessionPlayerClientResponse]:
     """
     Maps players in the session to SessionPlayerClientResponse.
     """
     return [
-        await _map_player(player)
+        await _map_player(player, users)
         for player in players
     ]
 
 
-async def _map_player(user) -> SessionPlayerClientResponse:
-    user_details = None
-    if user.user_id and user.user_id != 'None':
-        user_details = await get_user_service().get_user_by_id(user.user_id)
+async def _map_player(user, users) -> SessionPlayerClientResponse:
+    user_details = users.get(user.user_email, None)
 
-    if not user_details and user.user_email and user.user_email != 'None':
-        user_details = await get_user_service().get_user_by_email(user.user_email)
-
-    # Build player details
-    if user_details:
-        player = SessionPlayerClientResponse(
-            id=user.id,
-            **dict(user_details),
-            email_status=user.email_status
-        )
-    else:
-        player = SessionPlayerClientResponse(
-            id=user.id,
-            user_id=user.user_id,
-            user_email=user.user_email,
-            user_name=user.user_name,
-            email_status=user.email_status
-        )
-    return player
+    return SessionPlayerClientResponse(
+        id=user.id,
+        user_id=user_details.user_id if user_details else user.user_id,
+        user_email=user_details.user_email if user_details else user.user_email,
+        user_name=user_details.user_name if user_details else user.user_name,
+        email_status=user.email_status
+    )
 
 
 def handle_db_error(org_id: str, error: SQLAlchemyError):
@@ -192,27 +187,3 @@ def handle_unexpected_error(error: Exception):
     Handles any unexpected errors that occur.
     """
     raise Exception(f"Unexpected error occurred while retrieving sessions: {str(error)}")
-
-
-async def _fetch_user_details(user_id: Optional[str], user_email: Optional[str]) -> Optional[dict]:
-    """
-    Fetches user details by ID or email using the UserServiceClient.
-
-    Args:
-        user_id (Optional[str]): The user ID.
-        user_email (Optional[str]): The user email.
-
-    Returns:
-        Optional[dict]: A dictionary of user details if found, otherwise None.
-    """
-    user_service = get_user_service()
-
-    if user_id:
-        user_details = await user_service.get_user_by_id(user_id)
-        if user_details:
-            return user_details
-
-    if user_email:
-        return await user_service.get_user_by_email(user_email)
-
-    return None

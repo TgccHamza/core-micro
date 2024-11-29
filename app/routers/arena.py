@@ -13,6 +13,7 @@ from app.payloads.request.ArenaAssociateRequest import ArenaAssociateRequest
 from app.payloads.request.ArenaCreateRequest import ArenaCreateRequest
 from app.payloads.request.ArenaDisassociationRequest import ArenaDisassociationRequest
 from app.payloads.request.ArenaUpdateRequest import ArenaUpdateRequest
+from app.payloads.request.AssignModeratorRequest import AssignModeratorRequest
 from app.payloads.request.GroupCreateRequest import GroupCreateRequest
 from app.payloads.request.GroupInviteManagerRequest import GroupInviteManagerRequest
 from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
@@ -53,6 +54,7 @@ from app.services import associate_arena_with_group as services_associate_arena_
 from app.services import dissociate_arena_from_group as services_dissociate_arena_from_group
 from app.services import remove_player_from_session as services_remove_player_from_session
 from app.services import show_group as services_show_group
+from app.services import assign_moderator as services_assign_moderator
 
 import logging
 
@@ -488,3 +490,14 @@ async def groups_by_game(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while processing the request {e}"
         )
+
+
+@router.post("/sessions/{session_id}/assign-moderator", response_model=dict)
+async def assign_moderator(session_id: str, background_tasks: BackgroundTasks, req: AssignModeratorRequest, db: AsyncSession = Depends(get_db_async), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+        org_id = jwt_claims.get("org_id")
+
+        # Call the service to handle player invitations
+        await services_assign_moderator.assign_moderator(db, session_id, org_id, req.email, background_tasks)
+
+        return {"message": "Invitations sent successfully"}
+

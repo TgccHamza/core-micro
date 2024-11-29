@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy import text
-from app.database import get_db_async, DATABASE_URL
+from app.database import get_db_async, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME
 from alembic.config import Config
 from alembic import command
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +24,7 @@ import os
 import tempfile
 import logging
 
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 log_file = "uvicorn_logs.log"
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

@@ -160,14 +160,10 @@ async def _process_recent_project(db, project):
     """
     total_players = await count_session_players(db, project.module_game_id, project.id)
     emails = await get_manager_email_by_game(project.id, db)
-    print("Hello world =============================================")
-    print(emails)
     if len(emails) != 0:
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = dict()
-    print("_process_recent_project: Users ==========================>")
-    print(users)
     return RecentGameResponse(
         id=project.id,
         game_name=project.name,
@@ -210,15 +206,8 @@ async def space_admin(db: AsyncSession, user_id: str, org_id: str):
     # )
 
     project = await get_next_game_by_org(org_id=org_id, session=db)
-    print("Project already done")
-    print(project)
     favorite_projects = await fetch_favorite_projects(db, user_id)
-    print("Favorite Project already done")
-    print(favorite_projects)
     recent_projects = await fetch_recent_projects(db, org_id)
-    print("Recent Project already done")
-    print(recent_projects)
-
     # Process project events
     event = await _process_single_event(db, project)
 

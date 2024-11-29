@@ -171,10 +171,15 @@ async def admin_space(
 
 
 @client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
-async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: AsyncSession = Depends(get_db_async)):
+async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+                    db: AsyncSession = Depends(get_db_async)):
     try:
         org_id = jwt_claims.get("org_id")
-        return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
+        role = jwt_claims.get("role")
+        if role == "admin":
+            return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
+        else:
+            return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
     except Exception as e:
         # Log the error (you can use a proper logging framework in your project)
         logger.error(f"Error in game_view: {str(e)}")
@@ -211,7 +216,8 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Asy
 
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
-def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: AsyncSession = Depends(get_db_async)):
+def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+                db: AsyncSession = Depends(get_db_async)):
     """
     Endpoint to get the game configuration.
     """

@@ -1,10 +1,14 @@
 import logging
 import re
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from app.models import ArenaSession
 from uuid import UUID
+
+from app.repositories.get_session_by_id import get_session_by_id
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -43,7 +47,7 @@ def is_valid_org_code(value: str) -> bool:
     return bool(value) and re.match(r"^[A-Za-z0-9_-]+$", value)
 
 
-def get_session(db: Session, session_id: str, org_id: str) -> ArenaSession:
+async def get_session(db: AsyncSession, session_id: str, org_id: str) -> ArenaSession:
     """
     Retrieves a session by its ID and associated organization code, with input validation.
 
@@ -76,10 +80,7 @@ def get_session(db: Session, session_id: str, org_id: str) -> ArenaSession:
 
     try:
         # Query the session based on session_id and org_id
-        session = db.query(ArenaSession).filter(
-            ArenaSession.id == session_id,
-            ArenaSession.organisation_code == org_id
-        ).first()
+        session = await get_session_by_id(session_id, org_id, db)
 
         if not session:
             logger.warning(f"Session with ID {session_id} not found for organization {org_id}.")
