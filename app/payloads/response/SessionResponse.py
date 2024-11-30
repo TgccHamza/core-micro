@@ -8,7 +8,7 @@ from app.enums import PeriodType, AccessStatus, SessionStatus, ViewAccess, Activ
 
 
 class ArenaGroupUserResponse(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
