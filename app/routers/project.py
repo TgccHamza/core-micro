@@ -32,6 +32,7 @@ from app.services import project as services
 from app.services import create_project as services_create_project
 from app.services import get_project as services_get_project
 from app.services import space_admin as services_space_admin
+from app.services import space_user as services_space_user
 from app.services import game_view as services_game_view
 from app.services import favorite_project as services_favorite_project
 from app.services import unfavorite_project as services_unfavorite_project
@@ -143,15 +144,18 @@ async def admin_space(
     try:
         org_id = jwt_claims.get("org_id")
         user_id = jwt_claims.get("uid")
+        role = jwt_claims.get("role")
 
         if not org_id or not user_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Missing 'org_id' or 'uid' in JWT claims"
             )
-
-        # Call the service function to retrieve the admin space data
-        admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
+        if role == "admin":
+            # Call the service function to retrieve the admin space data
+            admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
+        else:
+            admin_space_data = await services_space_user.space_user(db=db, user_id=user_id, org_id=org_id)
 
         if admin_space_data is None:
             raise HTTPException(
@@ -217,7 +221,7 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Asy
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
 async def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
-                db: AsyncSession = Depends(get_db_async)):
+                      db: AsyncSession = Depends(get_db_async)):
     """
     Endpoint to get the game configuration.
     """
