@@ -10,8 +10,7 @@ async def get_manager_email_by_group(group_id: str, session: AsyncSession) -> Se
     result = await session.execute(
         select(GroupUsers.user_email)
         .distinct()  # Ensures unique email addresses
-        .join(Group, Group.id == GroupUsers.group_id)
-        .where(Group.id == group_id)
+        .where(GroupUsers.group_id == group_id)
     )
     return result.scalars().all()
 

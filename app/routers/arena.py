@@ -345,9 +345,16 @@ async def remove_invited_players(
 
 @router.get("/sessions", response_model=list[SessionResponse])
 async def list_sessions(db: AsyncSession = Depends(get_db_async), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-    org_id = jwt_claims.get("org_id")
-    sessions = await services_get_sessions.get_sessions(db, org_id)
-    return sessions
+    try:
+        org_id = jwt_claims.get("org_id")
+        sessions = await services_get_sessions.get_sessions(db, org_id)
+        return sessions
+    except Exception as e:
+        # General error handling for unexpected issues
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}"
+        )
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)

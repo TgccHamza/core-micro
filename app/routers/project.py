@@ -68,13 +68,13 @@ def get_project_modules(project_id: str, db: AsyncSession = Depends(get_db_async
 
 # Project Endpoints
 @admin_router.post("/projects", response_model=ProjectAdminResponse)
-def create_project(project: ProjectCreateRequest, db: AsyncSession = Depends(get_db_async)):
-    return services_create_project.create_project(db, dict(project))
+async def create_project(project: ProjectCreateRequest, db: AsyncSession = Depends(get_db_async)):
+    return await services_create_project.create_project(db, dict(project))
 
 
 @admin_router.get("/projects/{project_id}", response_model=ProjectAdminResponse)
-def get_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
-    return services_get_project.get_project(db, project_id)
+async def get_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
+    return await services_get_project.get_project(db, project_id)
 
 
 @admin_router.put("/projects/{project_id}", response_model=ProjectAdminResponse)
@@ -216,7 +216,7 @@ def list_favorites(jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims), db: Asy
 
 
 @client_router.get("/game/{game_id}/config", response_model=GameConfigResponse)
-def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+async def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
                 db: AsyncSession = Depends(get_db_async)):
     """
     Endpoint to get the game configuration.
@@ -226,7 +226,7 @@ def config_game(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claim
     if not org_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing org ID in JWT claims.")
 
-    config_project = services_config_client_game.config_client_game(db=db, org_id=org_id, project_id=game_id)
+    config_project = await services_config_client_game.config_client_game(db=db, org_id=org_id, project_id=game_id)
 
     if not config_project:
         raise HTTPException(status_code=404, detail="Game not found or could not be updated.")

@@ -1,9 +1,11 @@
 # MiddlewareWrapper.py
+import traceback
+
 from fastapi.routing import APIRoute
 from typing import Callable, List, Type
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 
 
 def middlewareWrapper(middlewares: List[BaseHTTPMiddleware] = []) -> Type[APIRoute]:
@@ -18,7 +20,21 @@ def middlewareWrapper(middlewares: List[BaseHTTPMiddleware] = []) -> Type[APIRou
                     middleware_instance = current_middleware(self.app)
                     handler, request = await middleware_instance.dispatch(request=request, call_next=handler)
 
-                return await handler(request)
+                try:
+                    return await handler(request)
+                except Exception as exc:
+                    tb_str = traceback.format_exc()  # Capture the traceback
+                    return JSONResponse(
+                        status_code=500,
+                        content={
+                            "error": str(exc),
+                            "traceback": tb_str,
+                            "detail": {
+                                "method": request.method,
+                                "url": request.url.path,
+                            },
+                        },
+                    )
 
             return custom_route_handler
 

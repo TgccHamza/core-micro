@@ -1,15 +1,17 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
+from typing import List, Optional, Sequence
 from fastapi import BackgroundTasks
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Group, GroupUsers  # Assuming these are your models
 from app.payloads.request.GroupInviteManagerRequest import GroupManager
+from app.payloads.response.UserResponse import UserResponse
+from app.repositories.get_manager_email_by_group import get_manager_email_by_group
 from app.services.organisation_service import get_organisation_service  # Assuming these are your services
 from app.services.send_invite_manager import send_invite_manager
 from app.services.user_service import get_user_service  # Assuming these are your services
 
 
 async def invite_managers(
-        db: Session,
+        db: AsyncSession,
         group: Group,
         managers: List[GroupManager],
         background_tasks: BackgroundTasks
@@ -34,7 +36,12 @@ async def invite_managers(
     game_link = f"{organisation_name}.gamitool.com/group/{group.id}/invite"
 
     # Fetch all existing invited emails for the group
-    existing_emails = get_existing_group_emails(db, group.id)
+    existing_emails = await get_manager_email_by_group(group.id, db)
+    existing_emails = list(existing_emails)
+    if len(existing_emails) != 0:
+        users = await get_user_service().get_users_by_email(existing_emails)
+    else:
+        users = {}
 
     # Process each manager
     for manager in managers:
@@ -42,7 +49,7 @@ async def invite_managers(
             continue
 
         # Fetch user details if available
-        user_details = await fetch_user_details(manager)
+        user_details = users.get(manager.user_email, None)
 
         # Create or update the manager record
         manager_record = create_or_update_manager(db, group, manager, user_details)
@@ -60,48 +67,13 @@ async def invite_managers(
         )
 
         # Mark email as processed
-        existing_emails.add(manager_record.user_email)
+        existing_emails.append(manager_record.user_email)
 
-    db.commit()  # Persist changes to the database
+    await db.commit()  # Persist changes to the database
     return {"message": "Emails queued for sending"}
 
 
-def get_existing_group_emails(db: Session, group_id: str) -> set:
-    """
-    Fetches emails of already invited users for a group.
-
-    Args:
-        db (Session): The database session.
-        group_id (int): The group ID.
-
-    Returns:
-        set: A set of emails of invited users.
-    """
-    return {
-        user.user_email for user in db.query(GroupUsers).filter(GroupUsers.group_id == group_id).all() if
-        user.user_email
-    }
-
-
-async def fetch_user_details(manager: GroupManager) -> Optional[object]:
-    """
-    Fetches user details either by user_id or email.
-
-    Args:
-        manager (GroupManager): The manager to fetch details for.
-
-    Returns:
-        Optional[object]: The user details or None if not found.
-    """
-    user_service = get_user_service()
-    if manager.user_id:
-        return await user_service.get_user_by_id(str(manager.user_id))
-    if manager.user_email:
-        return await user_service.get_user_by_email(manager.user_email)
-    return None
-
-
-def should_skip_invitation(manager: GroupManager, existing_emails: set) -> bool:
+def should_skip_invitation(manager: GroupManager, existing_emails: list[str]) -> bool:
     """
     Checks if a manager should be skipped from invitation.
 
@@ -112,14 +84,14 @@ def should_skip_invitation(manager: GroupManager, existing_emails: set) -> bool:
     Returns:
         bool: True if the manager should be skipped, otherwise False.
     """
-    return manager.user_email in existing_emails
+    return existing_emails.__contains__(manager.user_email)
 
 
 def create_or_update_manager(
-        db: Session,
+        db: AsyncSession,
         group: Group,
         manager: GroupManager,
-        user_details: Optional[object]
+        user_details: Optional[UserResponse]
 ) -> GroupUsers:
     """
     Creates or updates a GroupUsers record for the manager.

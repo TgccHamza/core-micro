@@ -1,9 +1,10 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Project
+from app.repositories.get_game_by_id_only import get_game_by_id_only
 
 
-def get_project(db: Session, project_id: str) -> Project:
+async def get_project(db: AsyncSession, project_id: str) -> Project:
     """
     Fetches a project by its ID from the database.
 
@@ -17,7 +18,7 @@ def get_project(db: Session, project_id: str) -> Project:
     Raises:
         HTTPException: If the project is not found.
     """
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = await get_game_by_id_only(project_id, db)
 
     if not project:
         raise HTTPException(

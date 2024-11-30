@@ -2,25 +2,20 @@ import logging
 from typing import Dict, Any
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Project
 
 logger = logging.getLogger(__name__)
 
 
-def create_project(
-        db: Session,
-        project_data: Dict[str, Any],
-        unique_fields: list[str] = None
-) -> Project:
+async def create_project(db: AsyncSession, project_data: Dict[str, Any]) -> Project:
     """
     Create a new project with enhanced error handling and logging.
 
     Args:
         db (Session): Database session
         project_data (Dict[str, Any]): Dictionary containing project creation details
-        unique_fields (list, optional): List of fields to check for uniqueness
 
     Returns:
         models.Project: Created project instance
@@ -59,17 +54,17 @@ def create_project(
     try:
         # Add and commit the project
         db.add(db_project)
-        db.commit()
+        await db.commit()
 
         # Refresh to get any database-generated fields
-        db.refresh(db_project)
+        await db.refresh(db_project)
 
         logger.info(f"Project created successfully: {db_project.slug}")
         return db_project
 
     except IntegrityError as ie:
         # Rollback the transaction
-        db.rollback()
+        await db.rollback()
 
         # Log the specific integrity error
         logger.error(f"Integrity error creating project: {ie}")
@@ -82,7 +77,7 @@ def create_project(
 
     except SQLAlchemyError as e:
         # Catch any other database-related errors
-        db.rollback()
+        await db.rollback()
 
         logger.error(f"Database error creating project: {e}")
 
@@ -93,7 +88,7 @@ def create_project(
 
     except Exception as e:
         # Catch any other unexpected errors
-        db.rollback()
+        await db.rollback()
 
         logger.error(f"Unexpected error creating project: {e}")
 

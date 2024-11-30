@@ -1,5 +1,5 @@
 import httpx
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import GroupUsers  # Assuming these are your models
 from app.enums import  EmailStatus
 from logging import getLogger
@@ -9,7 +9,7 @@ logger = getLogger(__name__)
 
 
 async def send_invite_manager(
-    db: Session,
+    db: AsyncSession,
     manager: GroupUsers,
     email: str,
     fullname: str,
@@ -75,7 +75,7 @@ async def send_invite_manager(
     finally:
         # Ensure the email status is committed to the database
         try:
-            db.commit()
+            await db.commit()
             logger.info(f"Email status for {email} committed to the database.")
         except Exception as e:
             logger.exception(f"Failed to commit email status for {email}: {str(e)}")

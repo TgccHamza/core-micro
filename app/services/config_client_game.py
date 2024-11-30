@@ -1,9 +1,11 @@
 from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Project
+from app.repositories.get_game_by_id import get_game_by_id
 
 
-def get_project(db, org_id: str, project_id: str):
+async def get_project(db: AsyncSession, org_id: str, project_id: str):
     """
     Retrieves a project by its organisation code and project ID.
 
@@ -18,10 +20,7 @@ def get_project(db, org_id: str, project_id: str):
     Raises:
         HTTPException: If the project is not found.
     """
-    project = db.query(Project).filter(
-        Project.organisation_code == org_id,
-        Project.id == project_id
-    ).first()
+    project = await get_game_by_id(project_id, org_id, db)
 
     if not project:
         raise HTTPException(
@@ -32,7 +31,7 @@ def get_project(db, org_id: str, project_id: str):
     return project
 
 
-def config_client_game(db, org_id: str, project_id: str):
+async def config_client_game(db: AsyncSession, org_id: str, project_id: str):
     """
     Configures the client game by fetching the associated project.
 
@@ -44,7 +43,7 @@ def config_client_game(db, org_id: str, project_id: str):
     Returns:
         Project: The project instance.
     """
-    project = get_project(db, org_id, project_id)
+    project = await get_project(db, org_id, project_id)
 
     # Additional logic for configuring the game can go here, such as client-specific settings.
 
