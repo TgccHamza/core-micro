@@ -1,24 +1,22 @@
-from sqlalchemy import select, asc, exists
+from typing import Sequence
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
-from app.models import Project, GroupUsers, ArenaSessionPlayers, ArenaSession, GroupProjects
+from app.models import Project
 
 
-async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: AsyncSession) -> Project:
+async def get_recent_projects_by_org_by_user(org_id: str, user_email: str, session: AsyncSession) -> Sequence[Project]:
     """
-    Fetches the next project (game) by organization code, ordered by start_time,
-    ensuring that the project ID exists in relevant subqueries.
+    Asynchronously fetch recent projects for an organization.
 
     Args:
-        org_id (str): The organization code.
-        user_email (str): The user's email.
-        session (AsyncSession): The asynchronous SQLAlchemy session.
+        session (AsyncSession): The asynchronous database session.
+        org_id (str): Organization identifier.
 
     Returns:
-        Project: The next Project object or None if not found.
+        List: List of recent game responses.
     """
-    # Alias for Project to reference in subqueries
     project_alias = aliased(Project)
 
     # Subquery to check if the user exists in group_projects related to the project
@@ -49,7 +47,7 @@ async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: As
             group_project_exists | arena_project_exists  # Combines the `exists` filters
         )
         .order_by(asc(Project.start_time))  # Orders by start time
-        .limi(1)
+        .limi(5)
     )
 
-    return result.scalar() # Fetches the first matching project
+    return result.scalars().all()  # Fetches the first matching project

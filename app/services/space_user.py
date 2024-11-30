@@ -11,7 +11,7 @@ from app.repositories.get_manager_by_group import get_manager_by_group
 from app.repositories.get_manager_email_by_game import get_manager_email_by_game
 from app.repositories.get_next_game_by_org import get_next_game_by_org
 from app.repositories.get_next_game_by_org_by_user import get_next_game_by_org_by_user
-from app.repositories.get_recent_projects_by_org import get_recent_projects_by_org
+from app.repositories.get_recent_projects_by_org_by_user import get_recent_projects_by_org_by_user
 
 logger = logging.getLogger(__name__)
 from app.models import Group, Project
@@ -49,6 +49,7 @@ async def _process_group_managers(
         processed_managers.append(processed_manager)
 
     return processed_managers
+
 
 async def _process_single_event(db: AsyncSession, project: Project):
     """
@@ -133,7 +134,7 @@ async def _process_favorite_project(db: AsyncSession, project):
     )
 
 
-async def fetch_recent_projects(db: AsyncSession, org_id):
+async def fetch_recent_projects(db: AsyncSession, org_id, user_email: str):
     """
     Fetch recent projects for an organization.
 
@@ -141,7 +142,7 @@ async def fetch_recent_projects(db: AsyncSession, org_id):
     :param org_id: Organization identifier
     :return: List of recent game responses
     """
-    recent_projects = await get_recent_projects_by_org(org_id, db)
+    recent_projects = await get_recent_projects_by_org_by_user(org_id, user_email, db)
 
     recent_tasks = [
         await _process_recent_project(db, project)
@@ -190,12 +191,12 @@ async def _process_recent_project(db, project):
     )
 
 
-async def space_user(db: AsyncSession, user_id: str, org_id: str):
+async def space_user(db: AsyncSession, user_email: str, org_id: str):
     """
     Comprehensive admin space retrieval with concurrent processing.
 
     :param db: Database session
-    :param user_id: User identifier
+    :param user_email: User identifier
     :param org_id: Organization identifier
     :return: AdminSpaceClientResponse
     """
@@ -206,9 +207,9 @@ async def space_user(db: AsyncSession, user_id: str, org_id: str):
     #     recent_projects_coro
     # )
 
-    project = await get_next_game_by_org_by_user(org_id=org_id, user_email=user_id, session=db)
+    project = await get_next_game_by_org_by_user(org_id=org_id, user_email=user_email, session=db)
     favorite_projects = await fetch_favorite_projects(db, user_id)
-    recent_projects = await fetch_recent_projects(db, org_id)
+    recent_projects = await fetch_recent_projects(db, org_id, user_email)
     # Process project events
     event = await _process_single_event(db, project)
 

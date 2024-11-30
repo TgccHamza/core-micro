@@ -31,6 +31,11 @@ class ClientAuthMiddleware(BaseHTTPMiddleware):
                     # Decode the JWT without validation
                     # You can provide `options={"verify_signature": False}` to skip verification
                     claims = jwt.decode(token, key=self.secret_key or "", options={"verify_signature": False})
+                    user = await get_user_service().get_user_by_id(claims['uid'])
+                    if user is None:
+                        raise HTTPException(status_code=401, detail="User not found")
+                    else:
+                        claims['email'] = user.email
                     # Attach claims to the request state for access in controllers
                     request.state.jwt_claims = claims
                 except jwt.exceptions.PyJWTError as e:

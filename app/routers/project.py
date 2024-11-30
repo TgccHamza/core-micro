@@ -144,6 +144,7 @@ async def admin_space(
     try:
         org_id = jwt_claims.get("org_id")
         user_id = jwt_claims.get("uid")
+        user_email = jwt_claims.get("email")
         role = jwt_claims.get("role")
 
         if not org_id or not user_id:
@@ -155,7 +156,7 @@ async def admin_space(
             # Call the service function to retrieve the admin space data
             admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
         else:
-            admin_space_data = await services_space_user.space_user(db=db, user_id=user_id, org_id=org_id)
+            admin_space_data = await services_space_user.space_user(db=db, user_email=user_email, org_id=org_id)
 
         if admin_space_data is None:
             raise HTTPException(
