@@ -114,7 +114,7 @@ class UserServiceClient:
             logger.error(f"Error connecting to user service: {str(e)}")
             return None
         except httpx.HTTPStatusError as e:
-            logger.error(f"User service error: {response.json().get('detail', str(e))}")
+            logger.error(f"User service error: {str(e)}")
             return None
 
 

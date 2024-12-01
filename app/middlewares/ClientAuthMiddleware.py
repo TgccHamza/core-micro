@@ -34,7 +34,6 @@ class ClientAuthMiddleware(BaseHTTPMiddleware):
                     # You can provide `options={"verify_signature": False}` to skip verification
                     claims = jwt.decode(token, key=self.secret_key or "", options={"verify_signature": False})
                     user = await get_user_service().get_user_by_id(claims['uid'])
-                    print(user)
                     if user is None:
                         raise HTTPException(status_code=401, detail="User not found")
                     else:
