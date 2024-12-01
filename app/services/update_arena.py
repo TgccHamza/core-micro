@@ -1,31 +1,16 @@
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
+
+from starlette import status
+
 from app.models import Arena
 from app.payloads.request import ArenaUpdateRequest
+from app.repositories.get_arena_by_id import get_arena_by_id
 
 
-def get_arena_by_id(db: Session, arena_id: UUID, org_id: str) -> Arena:
-    """
-    Retrieve an Arena by its ID and organization code.
-
-    Args:
-        db (Session): The database session.
-        arena_id (UUID): The ID of the Arena to retrieve.
-        org_id (str): The organization code to validate.
-
-    Returns:
-        Arena: The Arena object if found.
-
-    Raises:
-        ValueError: If the Arena is not found.
-    """
-    arena = db.query(Arena).filter(Arena.id == str(arena_id), Arena.organisation_code == org_id).first()
-    if not arena:
-        raise ValueError(f"Arena with ID {arena_id} not found in organization {org_id}")
-    return arena
-
-def update_arena(db: Session, arena_id: UUID, arena_request: ArenaUpdateRequest, org_id: str) -> Arena:
+async def update_arena(db: AsyncSession, arena_id: UUID, arena_request: ArenaUpdateRequest, org_id: str) -> Arena:
     """
     Update an Arena's details.
 
@@ -45,19 +30,22 @@ def update_arena(db: Session, arena_id: UUID, arena_request: ArenaUpdateRequest,
     try:
 
         # Retrieve the Arena
-        arena = get_arena_by_id(db, arena_id, org_id)
+        arena = await get_arena_by_id(str(arena_id), db)
+        if arena.organisation_code != org_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail={"message": "Arena not allowed for this organisation"})
 
         # Update fields conditionally
         if arena_request.name is not None:
             arena.name = arena_request.name
 
         # Commit the changes
-        db.commit()
-        db.refresh(arena)
+        await db.commit()
+        await db.refresh(arena)
         return arena
     except ValueError as e:
-        db.rollback()
+        await db.rollback()
         raise e
     except SQLAlchemyError as e:
-        db.rollback()
+        await db.rollback()
         raise RuntimeError(f"Database error occurred while updating Arena {arena_id}: {e}")

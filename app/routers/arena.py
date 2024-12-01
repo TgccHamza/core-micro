@@ -20,11 +20,13 @@ from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
 from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
 from app.payloads.request.SessionConfigRequest import SessionConfigRequest
 from app.payloads.request.SessionCreateRequest import SessionCreateRequest
+from app.payloads.response.ArenaCreateResponse import ArenaCreateResponse
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop
 from app.payloads.response.ArenaResponseTop import ArenaResponseTop
 from app.payloads.response.ArenaShowByGameResponse import ArenaShowByGameResponse
 from app.payloads.response.GroupByGameResponse import GroupByGameResponse
 from app.payloads.response.GroupClientResponse import GroupClientResponse
+from app.payloads.response.GroupCreateClientResponse import GroupCreateClientResponse
 from app.payloads.response.InvitePlayerResponse import InvitePlayerResponse
 from app.payloads.response.SessionCreateResponse import SessionCreateResponse
 from app.payloads.response.SessionResponse import SessionResponse
@@ -74,7 +76,7 @@ router = APIRouter(
 
 # ---------------- Group Routes ----------------
 
-@router.post("/groups", response_model=GroupClientResponse)
+@router.post("/groups", response_model=GroupCreateClientResponse)
 async def create_group(group: GroupCreateRequest,
                        background_tasks: BackgroundTasks,
                        db: AsyncSession = Depends(get_db_async),
@@ -213,7 +215,7 @@ async def disassociate_manager_from_group(
         )
 
 
-@router.put("/groups/{group_id}", response_model=GroupClientResponse)
+@router.put("/groups/{group_id}", response_model=GroupCreateClientResponse)
 async def update_group(group_id: str, group: GroupUpdateRequest, db: AsyncSession = Depends(get_db_async),
                        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
@@ -312,7 +314,7 @@ def remove_manager(group_manager_id: str, db: AsyncSession = Depends(get_db_asyn
 
 # ---------------- Arena Routes ----------------
 
-@router.post("/arenas", response_model=ArenaResponseTop)
+@router.post("/arenas", response_model=ArenaCreateResponse)
 async def create_arena(arena: ArenaCreateRequest, db: AsyncSession = Depends(get_db_async),
                        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
@@ -345,8 +347,8 @@ async def get_arena_by_game(arena_id: UUID, game_id: UUID, db: AsyncSession = De
     return arena
 
 
-@router.put("/arenas/{arena_id}", response_model=ArenaResponseTop)
-def update_arena(arena_id: UUID, arena: ArenaUpdateRequest, db: AsyncSession = Depends(get_db_async),
+@router.put("/arenas/{arena_id}", response_model=ArenaCreateResponse)
+async def update_arena(arena_id: UUID, arena: ArenaUpdateRequest, db: AsyncSession = Depends(get_db_async),
                  jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
     try:
