@@ -68,9 +68,9 @@ class SessionCreateResponse(BaseModel):
     access_status: AccessStatus  # You can change this to an Enum if needed
     session_status: SessionStatus  # You can change this to an Enum if needed
     view_access: ViewAccess
-    project: Optional[ProjectResponse]
-    arena: Optional[ArenaResponse]
-    players: List[SessionPlayerClientResponse]
+    # project: Optional[ProjectResponse]
+    # arena: Optional[ArenaResponse]
+    # players: List[SessionPlayerClientResponse]
 
     class Config:
         orm_mode = True

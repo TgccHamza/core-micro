@@ -284,11 +284,11 @@ def dissociate_arena(arena_id: UUID, dissociation: ArenaDisassociationRequest, d
 # ---------------- Session Routes ----------------
 
 @router.post("/sessions", response_model=SessionCreateResponse)
-def create_session(session: SessionCreateRequest, db: AsyncSession = Depends(get_db_async),
+async def create_session(session: SessionCreateRequest, db: AsyncSession = Depends(get_db_async),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_create_session.create_session(db, session, org_id)
+        return await services_create_session.create_session(db, session, org_id)
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"{e}")
 

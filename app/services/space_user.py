@@ -191,7 +191,7 @@ async def _process_recent_project(db, project):
     )
 
 
-async def space_user(db: AsyncSession, user_email: str, org_id: str):
+async def space_user(db: AsyncSession, user_id: str, user_email: str, org_id: str):
     """
     Comprehensive admin space retrieval with concurrent processing.
 
@@ -211,10 +211,14 @@ async def space_user(db: AsyncSession, user_email: str, org_id: str):
     favorite_projects = await fetch_favorite_projects(db, user_id)
     recent_projects = await fetch_recent_projects(db, org_id, user_email)
     # Process project events
-    event = await _process_single_event(db, project)
+
+    if project:
+        events = [await _process_single_event(db, project)]
+    else:
+        events = []
 
     return AdminSpaceClientResponse(
-        events=[event],
+        events=events,
         favorite_games=favorite_projects,
         recent_games=recent_projects
     )

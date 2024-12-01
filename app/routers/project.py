@@ -8,6 +8,9 @@ from starlette import status
 from app.helpers import get_jwt_claims
 import logging
 
+from app.payloads.response.GameViewModeratorClientResponse import GameViewModeratorClientResponse
+from app.payloads.response.GameViewPlayerClientResponse import GameViewPlayerClientResponse
+
 logger = logging.getLogger(__name__)
 from app.middlewares.ClientAuthMiddleware import ClientAuthMiddleware
 from app.middlewares.CollabAuthMiddleware import CollabAuthMiddleware
@@ -34,6 +37,7 @@ from app.services import get_project as services_get_project
 from app.services import space_admin as services_space_admin
 from app.services import space_user as services_space_user
 from app.services import game_view as services_game_view
+from app.services import game_view_user as services_game_view_user
 from app.services import favorite_project as services_favorite_project
 from app.services import unfavorite_project as services_unfavorite_project
 from app.services import list_favorites as services_list_favorites
@@ -156,7 +160,8 @@ async def admin_space(
             # Call the service function to retrieve the admin space data
             admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
         else:
-            admin_space_data = await services_space_user.space_user(db=db, user_email=user_email, org_id=org_id)
+            admin_space_data = await services_space_user.space_user(db=db, user_id=user_id, user_email=user_email,
+                                                                    org_id=org_id)
 
         if admin_space_data is None:
             raise HTTPException(
@@ -175,16 +180,17 @@ async def admin_space(
         )
 
 
-@client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse)
+@client_router.get("/game-view/{game_id}", response_model=GameViewClientResponse|GameViewModeratorClientResponse|GameViewPlayerClientResponse)
 async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
                     db: AsyncSession = Depends(get_db_async)):
     try:
         org_id = jwt_claims.get("org_id")
+        email = jwt_claims.get("email")
         role = jwt_claims.get("role")
         if role == "admin":
             return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
         else:
-            return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
+            return await services_game_view_user.gameViewUser(db=db, org_id=org_id, user_email=email, game_id=game_id)
     except Exception as e:
         # Log the error (you can use a proper logging framework in your project)
         logger.error(f"Error in game_view: {str(e)}")

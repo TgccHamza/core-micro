@@ -1,4 +1,4 @@
-from sqlalchemy import select, asc, exists
+from sqlalchemy import select, asc, exists, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -18,38 +18,51 @@ async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: As
     Returns:
         Project: The next Project object or None if not found.
     """
-    # Alias for Project to reference in subqueries
-    project_alias = aliased(Project)
 
     # Subquery to check if the user exists in group_projects related to the project
     group_project_exists = exists(
         select(GroupProjects.project_id)
+        .distinct()
         .join(GroupUsers, GroupProjects.group_id == GroupUsers.group_id)
         .where(
             GroupUsers.user_email == user_email,
-            GroupProjects.project_id == project_alias.id  # Ensures project is part of group_projects
+            GroupProjects.project_id == Project.id  # Ensures project is part of group_projects
         )
     )
 
     # Subquery to check if the user exists in arena session players related to the project
-    arena_project_exists = exists(
+    player_session_project_exists = exists(
         select(ArenaSession.project_id)
+        .distinct()
         .join(ArenaSessionPlayers, ArenaSession.id == ArenaSessionPlayers.session_id)
         .where(
-            ArenaSessionPlayers.user_email == user_email,
-            ArenaSession.project_id == project_alias.id  # Ensures project is part of arena sessions
+            ArenaSessionPlayers.user_email == user_email
+            ,
+            ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
         )
     )
 
-    # Main query to fetch the next project by organization code
-    result = await session.execute(
+    session_project_exists = exists(
+        select(ArenaSession.project_id)
+        .distinct()
+        .where(
+            ArenaSession.super_game_master_mail == user_email
+            ,
+            ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
+        )
+    )
+
+    query = (
         select(Project)
         .where(
             Project.organisation_code == org_id,
-            group_project_exists | arena_project_exists  # Combines the `exists` filters
+            group_project_exists | player_session_project_exists | session_project_exists # Combines the `exists` filters
         )
         .order_by(asc(Project.start_time))  # Orders by start time
-        .limi(1)
+        .limit(1)
     )
+
+    # Main query to fetch the next project by organization code
+    result = await session.execute(query)
 
     return result.scalar() # Fetches the first matching project
