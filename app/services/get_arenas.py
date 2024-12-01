@@ -1,26 +1,36 @@
-from sqlalchemy.orm import Session
 from typing import List
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import Arena
 from sqlalchemy.exc import NoResultFound
 
 from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, ArenaListGroupClientResponse, \
     ArenaListGroupUserClientResponse, ArenaMembers
+from app.repositories.get_arenas_by_org import get_arenas_by_org
+from app.repositories.get_groups_by_arena import get_groups_by_arena
+from app.repositories.get_manager_by_group import get_manager_by_group
+from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_players_by_session import get_players_by_session
+from app.repositories.get_session_by_arena import get_session_by_arena
 from app.services.user_service import get_user_service
 
 
-async def get_arenas(db: Session, org_id: str) -> List[ArenaListResponseTop]:
+async def get_arenas(db: AsyncSession, org_id: str) -> List[ArenaListResponseTop]:
     """
     Retrieve a list of arenas for a specific organization.
 
     Args:
-        db (Session): Database session.
+        db (AsyncSession): Database AsyncSession.
         org_id (str): Organization ID.
 
     Returns:
         List[ArenaListResponseTop]: List of arenas with associated groups and players.
     """
     # Fetch arenas for the given organization
-    arenas_data = db.query(Arena).filter(Arena.organisation_code == org_id).all()
+
+    arenas_data = await get_arenas_by_org(org_id, db)
     if not arenas_data:
         raise NoResultFound(f"No arenas found for organization {org_id}")
 
@@ -32,22 +42,24 @@ async def get_arenas(db: Session, org_id: str) -> List[ArenaListResponseTop]:
             groups=[],
             players=[]
         )
-
+        arena_groups = await get_groups_by_arena(db_arena.id, db)
+        arena_players = await get_session_by_arena(db_arena.id, db)
         # Process groups and players
-        arena.groups = await process_groups(db_arena.groups)
-        arena.players = await process_players(db_arena.sessions)
+        arena.groups = await process_groups(arena_groups, db)
+        arena.players = await process_players(arena_players, db)
 
         arenas.append(arena)
 
     return arenas
 
 
-async def process_groups(db_groups) -> List[ArenaListGroupClientResponse]:
+async def process_groups(db_groups, db: AsyncSession) -> List[ArenaListGroupClientResponse]:
     """
     Process the groups for an arena.
 
     Args:
         db_groups: Groups associated with an arena.
+        db: Database.
 
     Returns:
         List[ArenaListGroupClientResponse]: List of processed group data.
@@ -59,9 +71,15 @@ async def process_groups(db_groups) -> List[ArenaListGroupClientResponse]:
             name=db_group.name,
             managers=[]
         )
+        managers = await get_manager_by_group(db_group.id, db)
+        emails = await get_manager_email_by_group(db_group.id, db)
+        if len(emails) != 0:
+            users = await get_user_service().get_users_by_email(list(emails))
+        else:
+            users = {}
 
-        for manager in db_group.managers:
-            user_details = await fetch_user_details(manager.user_id, manager.user_email)
+        for manager in managers:
+            user_details = users.get(manager.user_email, None)
 
             if user_details:
                 group.managers.append(ArenaListGroupUserClientResponse(
@@ -80,12 +98,13 @@ async def process_groups(db_groups) -> List[ArenaListGroupClientResponse]:
     return groups
 
 
-async def process_players(db_sessions) -> List[ArenaMembers]:
+async def process_players(db_sessions, db: AsyncSession) -> List[ArenaMembers]:
     """
     Process the players for an arena.
 
     Args:
         db_sessions: Sessions associated with an arena.
+        db: Database
 
     Returns:
         List[ArenaMembers]: List of processed player data.
@@ -93,10 +112,17 @@ async def process_players(db_sessions) -> List[ArenaMembers]:
     dict_players = set()
     players = []
     for session in db_sessions:
-        for player in session.players:
+        session_players = await get_players_by_session(session.id, db)
+        player_emails = await get_player_email_by_session(session.id, db)
+        if len(player_emails) != 0:
+            users = await get_user_service().get_users_by_email(list(player_emails))
+        else:
+            users = {}
+
+        for player in session_players:
             if player.user_email not in dict_players:
                 dict_players.add(player.user_email)
-                user_details = await fetch_user_details(player.user_id, player.user_email)
+                user_details = users.get(player.user_email, None)
 
                 if user_details:
                     players.append(ArenaMembers(
@@ -112,25 +138,3 @@ async def process_players(db_sessions) -> List[ArenaMembers]:
                     ))
 
     return players
-
-
-async def fetch_user_details(user_id: str, user_email: str):
-    """
-    Fetch user details using the UserServiceClient.
-
-    Args:
-        user_id (str): User ID.
-        user_email (str): User email.
-
-    Returns:
-        dict: User details if found, else None.
-    """
-    user_details = None
-
-    if user_id and user_id != 'None':
-        user_details = await get_user_service().get_user_by_id(user_id)
-
-    if not user_details and user_email and user_email != 'None':
-        user_details = await get_user_service().get_user_by_email(user_email)
-
-    return user_details

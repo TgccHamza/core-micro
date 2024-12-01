@@ -1,6 +1,6 @@
 import logging
 from httpx import AsyncClient, RequestError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import ArenaSessionPlayers
 from app.enums import EmailStatus
 
@@ -10,7 +10,7 @@ logger.setLevel(logging.INFO)
 
 
 async def send_invite_email(
-        db: Session,
+        db: AsyncSession,
         player: ArenaSessionPlayers,
         email: str,
         fullname: str,
@@ -75,14 +75,14 @@ async def send_invite_email(
 
     finally:
         try:
-            db.commit()
+            await db.commit()
         except Exception as db_err:
             logger.critical(f"Failed to commit changes to the database: {db_err}")
             raise
 
 
 # Batch Processing Function Example (Optional)
-async def send_emails_in_batch(db: Session, players: list[ArenaSessionPlayers], email_data: list[dict]):
+async def send_emails_in_batch(db: AsyncSession, players: list[ArenaSessionPlayers], email_data: list[dict]):
     """
     Processes and sends emails in batches to improve efficiency.
 
@@ -106,7 +106,7 @@ async def send_emails_in_batch(db: Session, players: list[ArenaSessionPlayers], 
         )
     # Commit once after all emails are processed
     try:
-        db.commit()
+        await db.commit()
     except Exception as db_err:
         logger.critical(f"Failed to commit batch email updates: {db_err}")
-        db.rollback()
+        await db.rollback()

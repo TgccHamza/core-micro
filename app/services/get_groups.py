@@ -1,52 +1,35 @@
-import asyncio
 import logging
 from typing import List
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ArenaSession, Group, Arena, ArenaSessionPlayers
-from app.payloads.response.GroupClientResponse import GroupSessionPlayerClientResponse, GroupClientResponse, \
-    ProjectResponse, GroupUserClientResponse, GroupArenaClientResponse, GroupArenaSessionResponse
+from app.models import Group, Arena, GroupUsers
+from app.payloads.response.GroupListClientResponse import ProjectResponse, GroupListUserClientResponse, \
+    GroupListArenaClientResponse, GroupListClientResponse
+from app.payloads.response.UserResponse import UserResponse
+from app.repositories.get_arenas_by_group import get_arenas_by_group
+from app.repositories.get_games_by_group import get_games_by_group
+from app.repositories.get_groups_by_org import get_groups_by_org
+from app.repositories.get_manager_by_group import get_manager_by_group
+from app.repositories.get_manager_email_by_group import get_manager_email_by_group
 from app.services.user_service import get_user_service
 
 # Set up logging for this module
 logger = logging.getLogger(__name__)
 
 
-# Helper function to fetch user details
-async def fetch_user_details(user_id: str, user_email: str):
-    if user_id and user_id != 'None':
-        try:
-            return await get_user_service().get_user_by_id(user_id)
-        except Exception as e:
-            logger.error(f"Error fetching user by ID {user_id}: {str(e)}")
-    elif user_email and user_email != 'None':
-        try:
-            return await get_user_service().get_user_by_email(user_email)
-        except Exception as e:
-            logger.error(f"Error fetching user by email {user_email}: {str(e)}")
-    return None
-
-
-# Helper function to get sessions for an arena
-async def fetch_arena_sessions(arena_id: str, db: Session):
-    return db.query(ArenaSession).filter(ArenaSession.arena_id == arena_id).all()
-
-
 # Main function to get groups
-async def get_groups(db: Session, org_id: str) -> List[GroupClientResponse]:
-    db_groups = db.query(Group).filter(Group.organisation_code == org_id).all()
-
+async def get_groups(db: AsyncSession, org_id: str) -> List[GroupListClientResponse]:
+    db_groups = await get_groups_by_org(org_id, db)
     # Process each group concurrently
-    tasks = [process_group(db, db_group) for db_group in db_groups]
-    groups = await asyncio.gather(*tasks)
+    groups = [await process_group(db, db_group) for db_group in db_groups]
 
     return groups
 
 
 # Process each individual group
-async def process_group(db: Session, db_group: Group) -> GroupClientResponse:
-    group = GroupClientResponse(
+async def process_group(db: AsyncSession, db_group: Group) -> GroupListClientResponse:
+    group = GroupListClientResponse(
         id=db_group.id,
         name=db_group.name,
         managers=[],
@@ -55,19 +38,29 @@ async def process_group(db: Session, db_group: Group) -> GroupClientResponse:
     )
 
     # Fetch manager details concurrently
-    manager_tasks = [
-        process_manager(manager, db) for manager in db_group.managers
-    ]
-    group.managers = await asyncio.gather(*manager_tasks)
+    managers = await get_manager_by_group(db_group.id, db)
+    email_managers = await get_manager_email_by_group(db_group.id, db)
+    if len(email_managers) != 0:
+        users = await get_user_service().get_users_by_email(list(email_managers))
+    else:
+        users = {}
 
+    manager_tasks = [
+        process_manager(manager, users) for manager in managers
+    ]
+
+    group.managers = manager_tasks
+
+    arenas = await get_arenas_by_group(db_group.id, db)
     # Fetch arena details concurrently
     arena_tasks = [
-        process_arena(db, db_arena) for db_arena in db_group.arenas
+        process_arena(db_arena) for db_arena in arenas
     ]
-    group.arenas = await asyncio.gather(*arena_tasks)
+    group.arenas = arena_tasks
 
+    db_games = await get_games_by_group(db_group.id, db)
     # Process games for the group
-    for db_game in db_group.games:
+    for db_game in db_games:
         game = ProjectResponse(
             id=db_game.id,
             name=db_game.name,
@@ -86,70 +79,21 @@ async def process_group(db: Session, db_group: Group) -> GroupClientResponse:
 
 
 # Process each manager for the group
-async def process_manager(manager, db: Session) -> GroupUserClientResponse:
-    user_details = await fetch_user_details(manager.user_id, manager.user_email)
-
-    if user_details:
-        return GroupUserClientResponse(id=manager.id, **dict(user_details))
-    else:
-        return GroupUserClientResponse(
-            id=manager.id,
-            user_id=manager.user_id,
-            user_email=manager.user_email,
-            user_name=f"{manager.first_name} {manager.last_name}",
-        )
+def process_manager(manager: GroupUsers, users: dict[str, UserResponse]) -> GroupListUserClientResponse:
+    user_details = users.get(manager.user_email, None)
+    return GroupListUserClientResponse(
+        id=manager.id,
+        user_id=user_details.user_id if user_details else manager.user_id,
+        user_email=user_details.user_email if user_details else manager.user_email,
+        first_name=user_details.first_name if user_details else manager.first_name,
+        last_name=user_details.last_name if user_details else manager.last_name,
+    )
 
 
 # Process each arena for the group
-async def process_arena(db: Session, db_arena: Arena) -> GroupArenaClientResponse:
-    arena = GroupArenaClientResponse(
+def process_arena(db_arena: Arena) -> GroupListArenaClientResponse:
+    arena = GroupListArenaClientResponse(
         id=db_arena.id,
-        name=db_arena.name,
-        sessions=[]
+        name=db_arena.name
     )
-
-    # Fetch sessions concurrently for this arena
-    arena_sessions = await fetch_arena_sessions(db_arena.id, db)
-
-    # Process each session in the arena
-    session_tasks = [process_session(db, db_session) for db_session in arena_sessions]
-    arena.sessions = await asyncio.gather(*session_tasks)
-
     return arena
-
-
-# Process each session for the arena
-async def process_session(db: Session, db_session: ArenaSession) -> GroupArenaSessionResponse:
-    session = GroupArenaSessionResponse(
-        id=db_session.id,
-        period_type=db_session.period_type,
-        start_time=db_session.start_time,
-        end_time=db_session.end_time,
-        access_status=db_session.access_status,
-        session_status=db_session.session_status,
-        view_access=db_session.view_access,
-        players=[]
-    )
-
-    # Process players concurrently
-    player_tasks = [
-        process_player(player) for player in db_session.players
-    ]
-    session.players = await asyncio.gather(*player_tasks)
-
-    return session
-
-
-# Process each player in the session
-async def process_player(db_player: ArenaSessionPlayers) -> GroupSessionPlayerClientResponse:
-    user_details = await fetch_user_details(db_player.user_id, db_player.user_email)
-
-    if user_details:
-        return GroupSessionPlayerClientResponse(**dict(user_details))
-    else:
-        return GroupSessionPlayerClientResponse(
-            user_id=db_player.user_id,
-            user_email=db_player.user_email,
-            first_name=db_player.user_name,
-            last_name=db_player.user_name
-        )

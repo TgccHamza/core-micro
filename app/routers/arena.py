@@ -32,6 +32,8 @@ from app.database import get_db_async
 from uuid import UUID
 from sqlalchemy.exc import NoResultFound
 
+from app.repositories.get_group_by_id import get_group_by_id
+from app.repositories.get_session_by_id import get_session_by_id
 from app.services import config_session as services_config_session
 from app.services import delete_session as services_delete_session
 from app.services import show_session as services_show_session
@@ -58,6 +60,11 @@ from app.services import assign_moderator as services_assign_moderator
 
 import logging
 
+from app.services.assign_game_to_group import assign_game_to_group
+from app.services.assign_manager_to_group_by_email import assign_manager_to_group_by_email
+from app.services.remove_game_from_group import remove_game_from_group
+from app.services.remove_manager_from_group_by_email import remove_manager_from_group_by_email
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -68,13 +75,13 @@ router = APIRouter(
 # ---------------- Group Routes ----------------
 
 @router.post("/groups", response_model=GroupClientResponse)
-def create_group(group: GroupCreateRequest,
-                 background_tasks: BackgroundTasks,
-                 db: AsyncSession = Depends(get_db_async),
-                 jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def create_group(group: GroupCreateRequest,
+                       background_tasks: BackgroundTasks,
+                       db: AsyncSession = Depends(get_db_async),
+                       jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_create_group.create_group(db, group, org_id, background_tasks)
+        return await services_create_group.create_group(db, group, org_id, background_tasks)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -112,12 +119,106 @@ async def get_group(group_id: str, db: AsyncSession = Depends(get_db_async),
         )
 
 
-@router.put("/groups/{group_id}", response_model=GroupClientResponse)
-def update_group(group_id: str, group: GroupUpdateRequest, db: AsyncSession = Depends(get_db_async),
-                 jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+@router.post("/groups/{group_id}/assign-game/{game_id}")
+async def associate_project_to_group(group_id: UUID, game_id: UUID, db: AsyncSession = Depends(get_db_async),
+                                     jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_update_group.update_group(db, group_id, group, org_id)
+        # make the service code here
+
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization ID missing from JWT claims"
+            )
+
+        return await assign_game_to_group(group_id=str(group_id), game_id=str(game_id), organisation_id=org_id, db=db)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while retrieving the group: {str(e)}"
+        )
+
+
+@router.delete("/groups/{group_id}/remove-game/{game_id}")
+async def disassociate_project_in_group(group_id: UUID, game_id: UUID, db: AsyncSession = Depends(get_db_async),
+                                        jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    try:
+        org_id = jwt_claims.get("org_id")
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization ID missing from JWT claims"
+            )
+
+        return await remove_game_from_group(group_id=str(group_id), game_id=str(game_id), organisation_id=org_id, db=db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while retrieving the group: {str(e)}"
+        )
+
+
+
+@router.post("/groups/{group_id}/assign-manager-by-email/{manager_email}")
+async def associate_manager_to_group(
+    group_id: UUID,
+    manager_email: str,
+    db: AsyncSession = Depends(get_db_async),
+    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
+    try:
+        org_id = jwt_claims.get("org_id")
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization ID missing from JWT claims"
+            )
+        return await assign_manager_to_group_by_email(group_id=str(group_id), manager_email=manager_email, organisation_id=org_id, db=db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while assigning the manager: {str(e)}"
+        )
+
+
+@router.delete("/groups/{group_id}/remove-manager-by-email/{manager_email}")
+async def disassociate_manager_from_group(
+    group_id: UUID,
+    manager_email: str,
+    db: AsyncSession = Depends(get_db_async),
+    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)
+):
+    try:
+        org_id = jwt_claims.get("org_id")
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization ID missing from JWT claims"
+            )
+        return await remove_manager_from_group_by_email(group_id=str(group_id), manager_email=manager_email, organisation_id=org_id, db=db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while removing the manager: {str(e)}"
+        )
+
+
+@router.put("/groups/{group_id}", response_model=GroupClientResponse)
+async def update_group(group_id: str, group: GroupUpdateRequest, db: AsyncSession = Depends(get_db_async),
+                       jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    try:
+        org_id = jwt_claims.get("org_id")
+        return await services_update_group.update_group(db, group_id, group, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
     except Exception as e:
@@ -128,11 +229,11 @@ def update_group(group_id: str, group: GroupUpdateRequest, db: AsyncSession = De
 
 
 @router.delete("/groups/{group_id}")
-def delete_group(group_id: str, db: AsyncSession = Depends(get_db_async),
-                 jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def delete_group(group_id: str, db: AsyncSession = Depends(get_db_async),
+                       jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
-        return services_delete_group.delete_group(db, group_id, org_id)
+        return await services_delete_group.delete_group(db, group_id, org_id)
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Group not found")
     except Exception as e:
@@ -153,12 +254,17 @@ async def invite_manager(
     try:
         org_id = jwt_claims.get("org_id")
 
-        group = db.query(Group).filter(Group.id == group_id,
-                                       Group.organisation_code == org_id).first()
+        group = await get_group_by_id(group_id, db)
         if not group:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Group with ID {group_id} not found."
+            )
+
+        if group.organisation_code != org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Organisation not allowed."
             )
 
         await services_invite_managers.invite_managers(db, group, invite_req.managers, background_tasks)
@@ -207,10 +313,10 @@ def remove_manager(group_manager_id: str, db: AsyncSession = Depends(get_db_asyn
 # ---------------- Arena Routes ----------------
 
 @router.post("/arenas", response_model=ArenaResponseTop)
-def create_arena(arena: ArenaCreateRequest, db: AsyncSession = Depends(get_db_async),
-                 jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+async def create_arena(arena: ArenaCreateRequest, db: AsyncSession = Depends(get_db_async),
+                       jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     org_id = jwt_claims.get("org_id")
-    return services_create_arena.create_arena(db, arena, org_id)
+    return await services_create_arena.create_arena(db, arena, org_id)
 
 
 @router.get("/arenas", response_model=list[ArenaListResponseTop])
@@ -285,7 +391,7 @@ def dissociate_arena(arena_id: UUID, dissociation: ArenaDisassociationRequest, d
 
 @router.post("/sessions", response_model=SessionCreateResponse)
 async def create_session(session: SessionCreateRequest, db: AsyncSession = Depends(get_db_async),
-                   jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+                         jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     try:
         org_id = jwt_claims.get("org_id")
         return await services_create_session.create_session(db, session, org_id)
@@ -304,8 +410,7 @@ async def invite_players(
     org_id = jwt_claims.get("org_id")
 
     # Perform session validation before processing
-    session = db.query(ArenaSession).filter(ArenaSession.id == session_id,
-                                            ArenaSession.organisation_code == org_id).first()
+    session = await get_session_by_id(session_id, org_id, db)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -500,11 +605,12 @@ async def groups_by_game(
 
 
 @router.post("/sessions/{session_id}/assign-moderator", response_model=dict)
-async def assign_moderator(session_id: str, background_tasks: BackgroundTasks, req: AssignModeratorRequest, db: AsyncSession = Depends(get_db_async), jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
-        org_id = jwt_claims.get("org_id")
+async def assign_moderator(session_id: str, background_tasks: BackgroundTasks, req: AssignModeratorRequest,
+                           db: AsyncSession = Depends(get_db_async),
+                           jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
+    org_id = jwt_claims.get("org_id")
 
-        # Call the service to handle player invitations
-        await services_assign_moderator.assign_moderator(db, session_id, org_id, req.email, background_tasks)
+    # Call the service to handle player invitations
+    await services_assign_moderator.assign_moderator(db, session_id, org_id, req.email, background_tasks)
 
-        return {"message": "Invitations sent successfully"}
-
+    return {"message": "Invitations sent successfully"}

@@ -1,5 +1,6 @@
 import re
 from fastapi import BackgroundTasks, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from typing import List
 from app.models import Project, ArenaSessionPlayers, ArenaSession
@@ -7,6 +8,9 @@ from app.enums import EmailStatus
 from app.payloads.request.InvitePlayerRequest import InvitePlayerRequest
 import logging
 
+from app.repositories.check_existing_player_by_email_by_session import check_existing_player_by_email_by_session
+from app.repositories.get_game_by_id import get_game_by_id
+from app.repositories.get_game_by_id_only import get_game_by_id_only
 from app.services.organisation_service import get_organisation_service
 from app.services.send_invite_email import send_invite_email
 
@@ -32,7 +36,7 @@ def is_valid_email(email: str) -> bool:
 
 
 async def invite_players(
-        db: Session,
+        db: AsyncSession,
         session: ArenaSession,
         invite_req: InvitePlayerRequest,
         background_tasks: BackgroundTasks,
@@ -50,7 +54,7 @@ async def invite_players(
         dict: Confirmation message indicating emails are queued for sending.
     """
     # Fetch the associated project with validation
-    project = db.query(Project).filter(Project.id == session.project_id).first()
+    project = await get_game_by_id_only(session.project_id, db)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -89,10 +93,7 @@ async def invite_players(
         email_set.add(user.user_email)
 
         # Check if the player already exists in the session
-        existing_player = db.query(ArenaSessionPlayers).filter(
-            ArenaSessionPlayers.user_email == user.user_email,
-            ArenaSessionPlayers.session_id == session.id
-        ).first()
+        existing_player = await check_existing_player_by_email_by_session(user.user_email, session.id, db)
 
         if existing_player:
             logger.info(f"Player {user.user_fullname} already invited to this session.")
@@ -125,11 +126,11 @@ async def invite_players(
     if players_to_add:
         try:
             db.add_all(players_to_add)
-            db.commit()
+            await db.commit()
             logger.info(f"{len(players_to_add)} players added to the session.")
         except Exception as db_error:
             logger.error(f"Database error while saving players: {db_error}")
-            db.rollback()
+            await db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="An error occurred while saving players to the session."

@@ -1,8 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound
 import logging
-
-from app.models import GroupProjects
 from app.payloads.request.GroupUpdateRequest import GroupUpdateRequest
 from app.services.get_group import get_group
 
@@ -10,7 +8,7 @@ from app.services.get_group import get_group
 logger = logging.getLogger(__name__)
 
 
-def update_group(db: Session, group_id: str, group: GroupUpdateRequest, org_id: str):
+def update_group(db: AsyncSession, group_id: str, group: GroupUpdateRequest, org_id: str):
     try:
         # Fetch the existing group from the database
         db_group = get_group(db, group_id, org_id)
@@ -19,15 +17,6 @@ def update_group(db: Session, group_id: str, group: GroupUpdateRequest, org_id: 
 
         # Update group details
         db_group.name = group.name
-
-        # Delete old project associations
-        db.query(GroupProjects).filter(GroupProjects.group_id == group_id).delete(
-            synchronize_session=False)
-
-        # Add new project associations
-        for project_id in group.project_ids:
-            db_project_group = GroupProjects(group_id=group_id, project_id=project_id)
-            db.add(db_project_group)
 
         # Commit the changes to the database
         db.commit()
