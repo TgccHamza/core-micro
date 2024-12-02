@@ -66,9 +66,9 @@ async def get_projects(db: AsyncSession = Depends(get_db_async)):
 
 
 @admin_router.get("/projects/{project_id}/modules", response_model=list[ModuleAdminResponse])
-def get_project_modules(project_id: str, db: AsyncSession = Depends(get_db_async)):
+async def get_project_modules(project_id: str, db: AsyncSession = Depends(get_db_async)):
     """Endpoint to list all modules for a specific project."""
-    return services.list_modules(db, project_id)
+    return await services.list_modules(db, project_id)
 
 
 # Project Endpoints
@@ -83,41 +83,41 @@ async def get_project(project_id: str, db: AsyncSession = Depends(get_db_async))
 
 
 @admin_router.put("/projects/{project_id}", response_model=ProjectAdminResponse)
-def update_project(project_id: str, project: ProjectUpdateRequest, db: AsyncSession = Depends(get_db_async)):
-    return services.update_project(db, project_id, project)
+async def update_project(project_id: str, project: ProjectUpdateRequest, db: AsyncSession = Depends(get_db_async)):
+    return await services.update_project(db, project_id, project)
 
 
 @admin_router.delete("/projects/{project_id}", response_model=dict)
-def delete_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
-    return services.delete_project(db, project_id)
+async def delete_project(project_id: str, db: AsyncSession = Depends(get_db_async)):
+    return await services.delete_project(db, project_id)
 
 
 # ProjectModule Endpoints
 @admin_router.post("/modules", response_model=ModuleAdminResponse)
-def create_module(module: ModuleCreateRequest, db: AsyncSession = Depends(get_db_async)):
-    return services.create_module(db, module)
+async def create_module(module: ModuleCreateRequest, db: AsyncSession = Depends(get_db_async)):
+    return await services.create_module(db, module)
 
 
 @admin_router.get("/modules/{module_id}", response_model=ModuleAdminResponse)
-def get_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
-    return services.get_module(db, module_id)
+async def get_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
+    return await services.get_module(db, module_id)
 
 
 @admin_router.put("/modules/{module_id}", response_model=ModuleAdminResponse)
-def update_module(module_id: str, module: ModuleUpdateRequest, db: AsyncSession = Depends(get_db_async)):
-    return services.update_module(db, module_id, module)
+async def update_module(module_id: str, module: ModuleUpdateRequest, db: AsyncSession = Depends(get_db_async)):
+    return await services.update_module(db, module_id, module)
 
 
 @admin_router.delete("/modules/{module_id}", response_model=dict)
-def delete_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
-    return services.delete_module(db, module_id)
+async def delete_module(module_id: str, db: AsyncSession = Depends(get_db_async)):
+    return await services.delete_module(db, module_id)
 
 
 @admin_router.post("/modules/{module_id}/set-template")
 async def set_template_module(module_id: str, template_id: str,
                               db: AsyncSession = Depends(get_db_async)):
     try:
-        return services.set_template_module(db, module_id, template_id)
+        return await services.set_template_module(db, module_id, template_id)
     except Exception as e:
         logging.error(f"Error in upload_file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -201,12 +201,12 @@ async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_c
 
 
 @client_router.post("/projects/{project_id}/favorite", response_model=FavoriteResponse)
-def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+async def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
                      db: AsyncSession = Depends(get_db_async)):
     """Endpoint to add a project to favorites."""
 
     user_id = jwt_claims.get("uid")
-    return services_favorite_project.favorite_project(db=db, user_id=user_id, project_id=project_id)
+    return await services_favorite_project.favorite_project(db=db, user_id=user_id, project_id=project_id)
 
 
 @client_router.delete("/projects/{project_id}/favorite")

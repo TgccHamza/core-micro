@@ -317,7 +317,7 @@ class ArenaSessionPlayers(Base):
     user_email = Column(String(255), nullable=True)
     user_name = Column(String(255), nullable=True)
     email_status = Column(Enum(EmailStatus), default=EmailStatus.PENDING, nullable=True)
-    is_game_master = Column(Boolean, default=True)
+    is_game_master = Column(Boolean, default=False)
 
     # Relationships
     session = relationship("ArenaSession",
