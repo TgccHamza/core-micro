@@ -38,7 +38,8 @@ async def delete_session(db: AsyncSession, session_id: str, org_id: str):
 
         # Delete players associated with the session
         players = await get_players_by_session(session_id, db)
-        await db.delete(players)
+        for player in players:
+            await db.delete(player)
         logger.info(f"Deleted players for session {session_id}.")
 
         # Delete the session itself
