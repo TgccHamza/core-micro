@@ -1,10 +1,12 @@
 import logging
-from sqlalchemy.orm import Session
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 
 from app.exceptions.NoResultFoundError import NoResultFoundError
 from app.models import ArenaSessionPlayers
+from app.repositories.get_players_by_session import get_players_by_session
 from app.services.get_session import get_session
 
 # Set up logging
@@ -12,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def delete_session(db: Session, session_id: str, org_id: str):
+async def delete_session(db: AsyncSession, session_id: str, org_id: str):
     """
     Deletes a session and its associated players from the database.
 
@@ -35,22 +37,23 @@ def delete_session(db: Session, session_id: str, org_id: str):
             raise NoResultFoundError(f"Session with ID {session_id} not found in the organization.")
 
         # Delete players associated with the session
-        db.query(ArenaSessionPlayers).filter(ArenaSessionPlayers.session_id == session_id).delete()
+        players = await get_players_by_session(session_id, db)
+        await db.delete(players)
         logger.info(f"Deleted players for session {session_id}.")
 
         # Delete the session itself
-        db.delete(db_session)
+        await db.delete(db_session)
         logger.info(f"Deleted session {session_id}.")
 
         # Commit changes to the database
-        db.commit()
+        await db.commit()
         logger.info(f"Session {session_id} deleted successfully.")
 
         return {"message": "Session deleted successfully"}
 
     except SQLAlchemyError as e:
         # Handle database-related errors (e.g., connection issues, integrity errors)
-        db.rollback()  # Ensure the transaction is rolled back in case of error
+        await db.rollback()  # Ensure the transaction is rolled back in case of error
         logger.error(f"Database error occurred while deleting session {session_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

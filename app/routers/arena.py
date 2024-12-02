@@ -500,7 +500,7 @@ def config_session(session_id: str, session: SessionConfigRequest, db: AsyncSess
 
 
 @router.delete("/sessions/{session_id}")
-def delete_session(session_id: str, db: AsyncSession = Depends(get_db_async),
+async def delete_session(session_id: str, db: AsyncSession = Depends(get_db_async),
                    jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     """
     Deletes a session by its ID. Ensures the session exists and belongs to the correct organization.
@@ -509,7 +509,7 @@ def delete_session(session_id: str, db: AsyncSession = Depends(get_db_async),
 
     try:
         # Delegate the session deletion logic to the service layer
-        services_delete_session.delete_session(db, session_id, org_id)
+        await services_delete_session.delete_session(db, session_id, org_id)
         return {"message": "Session deleted successfully."}
 
     except NoResultFoundError:
