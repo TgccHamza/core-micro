@@ -5,7 +5,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 
 from app.exceptions.NoResultFoundError import NoResultFoundError
-from app.models import ArenaSessionPlayers
 from app.repositories.get_players_by_session import get_players_by_session
 from app.services.get_session import get_session
 
@@ -31,7 +30,7 @@ async def delete_session(db: AsyncSession, session_id: str, org_id: str):
     """
     try:
         # Fetch the session to be deleted
-        db_session = get_session(db, session_id, org_id)
+        db_session = await get_session(db, session_id, org_id)
         if not db_session:
             logger.warning(f"Session {session_id} not found for organization {org_id}.")
             raise NoResultFoundError(f"Session with ID {session_id} not found in the organization.")
