@@ -1,5 +1,6 @@
 from typing import Optional
-from sqlalchemy.orm import Session
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 import logging
@@ -9,8 +10,8 @@ from app.models import ProjectFavorite
 logger = logging.getLogger(__name__)
 
 
-def favorite_project(
-        db: Session,
+async def favorite_project(
+        db: AsyncSession,
         user_id: str,
         project_id: str,
         raise_on_duplicate: bool = False

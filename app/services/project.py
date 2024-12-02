@@ -62,7 +62,7 @@ async def delete_project(db: AsyncSession, project_id: str):
 
 
 async def create_module(db: AsyncSession, module: ModuleCreateRequest):
-    db_module = models.ProjectModule(**module.dict())
+    db_module = models.ProjectModule(**dict(module))
     db.add(db_module)
     try:
         await db.commit()
