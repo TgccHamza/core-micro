@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 
 from httpx import AsyncClient, RequestError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from app.enums import EmailStatus
 # Configure logger for structured logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 async def send_invite_moderator(
         db: AsyncSession,
@@ -38,14 +41,22 @@ async def send_invite_moderator(
 
     if fullname is None:
         fullname = ""
+    # Get the path to the template file
+    template_path = os.path.join('/app/app', "mails", "template_invite_moderator.html")
+
+    # Read the template
+    with open(template_path, "r", encoding="utf-8") as file:
+        template_content = file.read()
+
+    # Replace placeholders with actual values
+    template_content = template_content.replace("[Recipient Name]", fullname)
+    template_content = template_content.replace("[OrgName]", organisation_name)
+    template_content = template_content.replace("[Your CTA URL]", game_link)
+    template_content = template_content.replace("[GAME_NAME]", game_name)
+    template_content = re.sub(r"\s+", " ", template_content).strip()
 
     email_payload = {
-        "html_body": (
-            f"Hi {fullname},<br/><br/>"
-            f"You have been invited by {organisation_name} to moderate the game {game_name}.<br/>"
-            f"Access the game here: <a href=\"{game_link}\">{game_link}</a><br/><br/>"
-            "Enjoy!"
-        ),
+        "html_body": template_content,
         "is_html": True,
         "subject": f"{organisation_name} - Invitation to play {game_name}",
         "to": email,

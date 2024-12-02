@@ -59,8 +59,6 @@ async def assign_moderator(db: AsyncSession, session_id: str, org_id: str, email
                 detail="Organisation not found."
             )
 
-        game_link = f"{organisation_name}.gamitool.com/{project.slug}/moderator/invite"
-
         # Email validation
         if not is_valid_email(email):
             logger.error(f"Invalid email email.")
@@ -78,6 +76,7 @@ async def assign_moderator(db: AsyncSession, session_id: str, org_id: str, email
 
         session.super_game_master_mail = email
 
+        game_link = f"{organisation_name}.gamitool.com/game/{project.id}/moderator/invite?token={session.id}"
         # Queue email sending in the background
         background_tasks.add_task(
             send_invite_moderator,

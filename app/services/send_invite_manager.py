@@ -50,9 +50,9 @@ async def send_invite_manager(
     # Replace placeholders with actual values
     template_content = template_content.replace("[Recipient Name]", fullname)
     template_content = template_content.replace("[OrgName]", organisation_name)
-    template_content = template_content.replace("[Your CTA URL]", group_link)
+    template_content = template_content.replace("[Your CTA URL]", group_link.lower())
     template_content = re.sub(r"\s+", " ", template_content).strip()
-    print(template_content)
+
     email_data = {
         "html_body": template_content,
         "is_html": True,

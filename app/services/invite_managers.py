@@ -33,7 +33,6 @@ async def invite_managers(
     # Prepare group and organisation details
     game_name = group.name
     organisation_name = await get_organisation_service().get_organisation_name(group.organisation_code)
-    game_link = f"{organisation_name}.gamitool.com/group/{group.id}/invite"
 
     # Fetch all existing invited emails for the group
     existing_emails = await get_manager_email_by_group(group.id, db)
@@ -53,6 +52,7 @@ async def invite_managers(
 
         # Create or update the manager record
         manager_record = create_or_update_manager(db, group, manager, user_details)
+        game_link = f"https://{organisation_name}.gamitool.com/group/{group.id}/invite?token={manager_record.id}"
 
         # Schedule email invitation
         background_tasks.add_task(

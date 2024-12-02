@@ -41,7 +41,7 @@ async def send_invite_email(
     if fullname is None:
         fullname = ""
     # Get the path to the template file
-    template_path = os.path.join('/app/app', "mails", "template_invite_manager.html")
+    template_path = os.path.join('/app/app', "mails", "template_invite_player.html")
 
     # Read the template
     with open(template_path, "r", encoding="utf-8") as file:
@@ -51,8 +51,9 @@ async def send_invite_email(
     template_content = template_content.replace("[Recipient Name]", fullname)
     template_content = template_content.replace("[OrgName]", organisation_name)
     template_content = template_content.replace("[Your CTA URL]", game_link)
+    template_content = template_content.replace("[GAME_NAME]", game_name)
     template_content = re.sub(r"\s+", " ", template_content).strip()
-    print(template_content)
+
     email_payload = {
         "html_body": template_content,
         "is_html": True,

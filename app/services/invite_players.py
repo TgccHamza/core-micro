@@ -72,8 +72,6 @@ async def invite_players(
             detail="Organisation not found."
         )
 
-    game_link = f"{organisation_name}.gamitool.com/{project.slug}/invite"
-
     players_to_add: List[ArenaSessionPlayers] = []
     email_set = set()  # To check for duplicate emails in the invite request
 
@@ -109,6 +107,8 @@ async def invite_players(
             email_status=EmailStatus.PENDING,  # Set initial email status to PENDING
         )
         players_to_add.append(db_player)
+
+        game_link = f"https://{organisation_name}.gamitool.com/game/{project.id}/invite?token={db_player.id}"
 
         # Queue email sending in the background
         background_tasks.add_task(
