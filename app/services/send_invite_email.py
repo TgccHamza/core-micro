@@ -1,4 +1,7 @@
 import logging
+import os
+import re
+
 from httpx import AsyncClient, RequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import ArenaSessionPlayers
@@ -37,14 +40,21 @@ async def send_invite_email(
 
     if fullname is None:
         fullname = ""
+    # Get the path to the template file
+    template_path = os.path.join('/app/app', "mails", "template_invite_manager.html")
 
+    # Read the template
+    with open(template_path, "r", encoding="utf-8") as file:
+        template_content = file.read()
+
+    # Replace placeholders with actual values
+    template_content = template_content.replace("[Recipient Name]", fullname)
+    template_content = template_content.replace("[OrgName]", organisation_name)
+    template_content = template_content.replace("[Your CTA URL]", game_link)
+    template_content = re.sub(r"\s+", " ", template_content).strip()
+    print(template_content)
     email_payload = {
-        "html_body": (
-            f"Hi {fullname},<br/><br/>"
-            f"You have been invited by {organisation_name} to play {game_name}.<br/>"
-            f"Access the game here: <a href=\"{game_link}\">{game_link}</a><br/><br/>"
-            "Enjoy!"
-        ),
+        "html_body": template_content,
         "is_html": True,
         "subject": f"{organisation_name} - Invitation to play {game_name}",
         "to": email,

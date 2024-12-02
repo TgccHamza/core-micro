@@ -1,7 +1,10 @@
+import os
+import re
+
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import GroupUsers  # Assuming these are your models
-from app.enums import  EmailStatus
+from app.enums import EmailStatus
 from logging import getLogger
 
 # Configure logger
@@ -9,13 +12,13 @@ logger = getLogger(__name__)
 
 
 async def send_invite_manager(
-    db: AsyncSession,
-    manager: GroupUsers,
-    email: str,
-    fullname: str,
-    organisation_name: str,
-    group_name: str,
-    group_link: str
+        db: AsyncSession,
+        manager: GroupUsers,
+        email: str,
+        fullname: str,
+        organisation_name: str,
+        group_name: str,
+        group_link: str
 ):
     """
     Sends an invitation email to the manager and updates email status.
@@ -37,13 +40,21 @@ async def send_invite_manager(
         fullname = ""
 
     email_api_url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
+    # Get the path to the template file
+    template_path = os.path.join('/app/app', "mails", "template_invite_manager.html")
+
+    # Read the template
+    with open(template_path, "r", encoding="utf-8") as file:
+        template_content = file.read()
+
+    # Replace placeholders with actual values
+    template_content = template_content.replace("[Recipient Name]", fullname)
+    template_content = template_content.replace("[OrgName]", organisation_name)
+    template_content = template_content.replace("[Your CTA URL]", group_link)
+    template_content = re.sub(r"\s+", " ", template_content).strip()
+    print(template_content)
     email_data = {
-        "html_body": (
-            f"Hi {fullname},<br><br>"
-            f"Welcome to the Gaming Tool platform!<br>"
-            f"You have been invited by {organisation_name} to manage the group: "
-            f"<a href=\"{group_link}\">{group_name}</a>."
-        ),
+        "html_body": template_content,
         "is_html": True,
         "subject": f"{organisation_name} - Invitation to manage {group_name}",
         "to": email,

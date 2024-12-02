@@ -45,8 +45,8 @@ async def invite_managers(
 
     # Process each manager
     for manager in managers:
-        if should_skip_invitation(manager, existing_emails):
-            continue
+        # if should_skip_invitation(manager, existing_emails):
+        #     continue
 
         # Fetch user details if available
         user_details = users.get(manager.user_email, None)

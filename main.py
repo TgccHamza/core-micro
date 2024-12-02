@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import sys
 
@@ -37,9 +38,8 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
-
 print("Change tmp folder for uploading file")
-#actualy he take the file in memory only
+# actualy he take the file in memory only
 tempfile.tempdir = "/app/tmp_uploads"
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -51,6 +51,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # @app.post("/create-folder")
 # async def create_folder():
@@ -256,3 +257,26 @@ async def get_logs():
     except Exception as e:
         logger.error(f"Error reading log file: {str(e)}")
         raise HTTPException(status_code=500, detail="Error reading log file.")
+
+
+# Endpoint to get the logs from the log file
+@app.get("/assets/{file_name}")
+async def get_file_from_assets(file_name: str):
+    # Define the assets directory path
+    assets_dir = os.path.join('/app/app', "assets")
+
+    # Construct the full file path
+    file_path = os.path.join(assets_dir, file_name)
+
+    # Check if the file exists and is a file (not a directory)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Guess the MIME type of the file
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        mime_type = "application/octet-stream"  # Default MIME type
+
+    # Return the file using FileResponse
+    return FileResponse(file_path, media_type=mime_type, filename=file_name,  # Optional, for download prompt
+                        headers={"Content-Disposition": f"inline; filename={file_name}"})
