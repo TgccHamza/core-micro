@@ -34,19 +34,6 @@ async def get_user_role_in_game_by_org(
     if result.scalar() is not None:
         return "manager"
 
-    moderator_query = (
-        select(ArenaSession.project_id)
-        .where(
-            ArenaSession.super_game_master_mail == user_email,
-            ArenaSession.project_id == game_id,
-            ArenaSession.organisation_code == org_id,
-        )
-    )
-
-    # Moderator role
-    result = await session.execute(moderator_query)
-    if result.scalar() is not None:
-        return "moderator"
 
     player_query = (
         select(ArenaSessionPlayers.session_id)
@@ -62,6 +49,22 @@ async def get_user_role_in_game_by_org(
     result = await session.execute(player_query)
     if result.scalar() is not None:
         return "player"
+
+
+    moderator_query = (
+        select(ArenaSession.project_id)
+        .where(
+            ArenaSession.super_game_master_mail == user_email,
+            ArenaSession.project_id == game_id,
+            ArenaSession.organisation_code == org_id,
+        )
+    )
+
+    # Moderator role
+    result = await session.execute(moderator_query)
+    if result.scalar() is not None:
+        return "moderator"
+
 
     # No access
     return None

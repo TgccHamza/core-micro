@@ -4,6 +4,7 @@ from app.models import (Project, Arena, ArenaSession, SessionStatus, ActivationS
 from app.payloads.request.SessionCreateRequest import SessionCreateRequest
 from app.repositories.get_arena_by_id import get_arena_by_id
 from app.repositories.get_game_by_id import get_game_by_id
+from app.services.game_db_service import get_game_db_service
 
 
 async def get_project(db: AsyncSession, org_id: str, project_id: str) -> Project:
@@ -23,6 +24,7 @@ async def get_arena(db: AsyncSession, org_id: str, arena_id: str) -> Arena:
 async def create_arena_session(
     db: AsyncSession, session_data: SessionCreateRequest, project: Project, org_id: str
 ) -> ArenaSession:
+    db_index = await get_game_db_service().create_game()
     arena_session = ArenaSession(
         arena_id=str(session_data.arena_id),
         project_id=str(session_data.game_id),
@@ -30,6 +32,7 @@ async def create_arena_session(
         activation_status=ActivationStatus.INACTIVE,
         access_status=AccessStatus.AUTH,
         view_access=ViewAccess.SESSION,
+        db_index=db_index,
         organisation_code=org_id,
         player_module_id=str(project.module_game_id),
         gamemaster_module_id=str(project.module_gamemaster_id),

@@ -172,7 +172,8 @@ async def _map_player(user, users) -> SessionPlayerClientResponse:
         user_id=user_details.user_id if user_details else user.user_id,
         user_email=user_details.user_email if user_details else user.user_email,
         user_name=user_details.user_name if user_details else user.user_name,
-        email_status=user.email_status
+        email_status=user.email_status,
+        is_game_master=user.is_game_master if user.is_game_master is not None else False
     )
 
 

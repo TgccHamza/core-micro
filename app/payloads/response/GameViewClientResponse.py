@@ -10,12 +10,14 @@ class GameViewSessionPlayerClientResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     picture: Optional[str] = None
+    is_game_master: Optional[bool] = None
 
 class GameViewSessionResponse(BaseModel):
     id: Optional[UUID]
     period_type: Optional[PeriodType]  # You can change this to an Enum if needed
     start_time: Optional[datetime]
     end_time: Optional[datetime]
+    db_index: Optional[str]
     access_status: AccessStatus  # You can change this to an Enum if needed
     session_status: SessionStatus  # You can change this to an Enum if needed
     view_access: ViewAccess

@@ -6,16 +6,20 @@ from sqlalchemy.orm import Session
 
 import logging
 
+from app.enums import ModuleForType
 from app.payloads.response.GameViewModeratorClientResponse import GameViewModeratorClientResponse, \
-    GameViewModeratorSessionResponse, GameViewModeratorSessionPlayerClientResponse, GameViewModeratorArenaResponse
+    GameViewModeratorSessionResponse, GameViewModeratorSessionPlayerClientResponse, GameViewModeratorArenaResponse, \
+    ModeratorModuleLinkResponse
 from app.payloads.response.GameViewPlayerClientResponse import GameViewPlayerClientResponse, \
-    GameViewPlayerSessionResponse, GameViewPlayerArenaResponse
+    GameViewPlayerSessionResponse, GameViewPlayerArenaResponse, PlayerModuleLinkResponse
 from app.repositories.get_arena_by_id import get_arena_by_id
 from app.repositories.get_game_by_id import get_game_by_id
 from app.repositories.get_group_by_arena import get_group_by_arena
 from app.repositories.get_manager_by_group import get_manager_by_group
 from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_module_by_game_by_type import get_module_by_game_by_type
 from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_player_for_session_by_email import get_player_for_session_by_email
 from app.repositories.get_players_by_session import get_players_by_session
 from app.repositories.get_session_by_game import get_session_by_game
 from app.repositories.get_session_by_game_for_moderator import get_session_by_game_for_moderator
@@ -100,7 +104,8 @@ async def _process_session_players(players: Sequence[ArenaSessionPlayers], users
             email=user_detail.get('user_email') if user_detail else player.user_email,
             first_name=user_detail.get('first_name') if user_detail else None,
             last_name=user_detail.get('last_name') if user_detail else None,
-            picture=user_detail.get('picture') if user_detail else None
+            picture=user_detail.get('picture') if user_detail else None,
+            is_game_master = player.is_game_master if player.is_game_master is not None else False
         )
 
         processed_players.append(processed_player)
@@ -130,7 +135,8 @@ async def _process_session_players_for_moderator(players: Sequence[ArenaSessionP
             email=user_detail.get('user_email') if user_detail else player.user_email,
             first_name=user_detail.get('first_name') if user_detail else None,
             last_name=user_detail.get('last_name') if user_detail else None,
-            picture=user_detail.get('picture') if user_detail else None
+            picture=user_detail.get('picture') if user_detail else None,
+            is_game_master = player.is_game_master if player.is_game_master is not None else False
         )
 
         processed_players.append(processed_player)
@@ -159,9 +165,6 @@ async def _create_session_response(
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = list()
-    print("=========== GameViewSessionResponse ============")
-    print(emails)
-    print(users)
     return GameViewSessionResponse(
         id=session.id,
         period_type=session.period_type,
@@ -170,6 +173,7 @@ async def _create_session_response(
         access_status=session.access_status,
         session_status=session.session_status,
         view_access=session.view_access,
+        db_index=session.db_index,
         players=await _process_session_players(players, users)
     )
 
@@ -198,7 +202,7 @@ async def _create_session_for_moderator_response(
         users = await get_user_service().get_users_by_email(list(emails))
     else:
         users = list()
-
+    links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.MODERATOR], db)
     return GameViewModeratorSessionResponse(
         id=session.id,
         arena=GameViewModeratorArenaResponse(
@@ -206,11 +210,13 @@ async def _create_session_for_moderator_response(
             name=db_arena.name,
         ) if db_arena else None,
         period_type=session.period_type,
+        db_index=session.db_index,
         start_time=session.start_time,
         end_time=session.end_time,
         access_status=session.access_status,
         session_status=session.session_status,
         view_access=session.view_access,
+        links=(ModeratorModuleLinkResponse(name=link.name, template_code=link.template_code) for link in links),
         players=await _process_session_players_for_moderator(players, users)
     )
 
@@ -218,6 +224,7 @@ async def _create_session_for_moderator_response(
 # Update the session response creation in the previous function
 async def _create_session_for_player_response(
         session: ArenaSession,
+        user_email: str,
         db: AsyncSession
 ) -> GameViewPlayerSessionResponse:
     """
@@ -232,19 +239,28 @@ async def _create_session_for_player_response(
     """
 
     db_arena = await get_arena_by_id(session.arena_id, db)
+    player = await get_player_for_session_by_email(session.id, user_email, db)
+
+    if player.is_game_master:
+        links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.GAMEMASTER], db)
+    else:
+        links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.PLAYER], db)
 
     return GameViewPlayerSessionResponse(
         id=session.id,
         period_type=session.period_type,
         start_time=session.start_time,
         end_time=session.end_time,
+        db_index=session.db_index,
         arena=GameViewPlayerArenaResponse(
             id=db_arena.id,
             name=db_arena.name,
         ) if db_arena else None,
+        links=(PlayerModuleLinkResponse(name=link.name, template_code=link.template_code) for link in links),
         access_status=session.access_status,
         session_status=session.session_status,
-        view_access=session.view_access
+        view_access=session.view_access,
+        is_game_master=player.is_game_master if player.is_game_master is not None else False
     )
 
 
@@ -332,7 +348,7 @@ async def _build_game_sessions_for_player(user_email: str,
     sessions = []
     for arena_session in arena_sessions:
         sessions.append(
-            await _create_session_for_player_response(arena_session, db)
+            await _create_session_for_player_response(arena_session, user_email, db)
         )
 
     return sessions

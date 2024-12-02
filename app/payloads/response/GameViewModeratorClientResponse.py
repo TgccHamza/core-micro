@@ -11,12 +11,16 @@ class GameViewModeratorSessionPlayerClientResponse(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     picture: Optional[str] = None
+    is_game_master: Optional[bool] = None
 
 
 class GameViewModeratorArenaResponse(BaseModel):
     id: str
     name: str
 
+class ModeratorModuleLinkResponse(BaseModel):
+    name: Optional[str]
+    template_code: Optional[str]
 
 class GameViewModeratorSessionResponse(BaseModel):
     id: Optional[UUID]
@@ -24,10 +28,12 @@ class GameViewModeratorSessionResponse(BaseModel):
     period_type: Optional[PeriodType]  # You can change this to an Enum if needed
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    access_status: AccessStatus  # You can change this to an Enum if needed
-    session_status: SessionStatus  # You can change this to an Enum if needed
-    view_access: ViewAccess
+    db_index: Optional[str]
+    access_status: Optional[AccessStatus]  # You can change this to an Enum if needed
+    session_status: Optional[SessionStatus]  # You can change this to an Enum if needed
+    view_access: Optional[ViewAccess]
     players: List[GameViewModeratorSessionPlayerClientResponse]
+    links: List[ModeratorModuleLinkResponse]
 
 
 class GameViewModeratorClientResponse(BaseModel):

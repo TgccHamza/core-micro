@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Enum, Integer, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.enums import AccessStatus, PeriodType, SessionStatus, ViewAccess, ActivationStatus, GameType, PlayingType, \
-    ModuleType, EmailStatus
+    ModuleType, EmailStatus, ModuleForType
 
 
 class Project(Base):
@@ -79,6 +79,7 @@ class ProjectModule(Base):
     name = Column(String(255), index=True)
     description = Column(String(255), index=True)
     type = Column(Enum(ModuleType), default=ModuleType.EXTENSION)
+    module_for = Column(Enum(ModuleForType), default=ModuleForType.ALL)
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
     template_code = Column(String(36), index=True)  # No ForeignKey constraint
     # New fields

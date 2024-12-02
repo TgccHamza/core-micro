@@ -17,6 +17,7 @@ async def send_invite_email(
         player: ArenaSessionPlayers,
         email: str,
         fullname: str,
+        is_game_master: bool,
         organisation_name: str,
         game_name: str,
         game_link: str,
@@ -40,8 +41,12 @@ async def send_invite_email(
 
     if fullname is None:
         fullname = ""
+
     # Get the path to the template file
-    template_path = os.path.join('/app/app', "mails", "template_invite_player.html")
+    if is_game_master:
+        template_path = os.path.join('/app/app', "mails", "template_invite_game_master.html")
+    else:
+        template_path = os.path.join('/app/app', "mails", "template_invite_player.html")
 
     # Read the template
     with open(template_path, "r", encoding="utf-8") as file:
@@ -115,6 +120,7 @@ async def send_emails_in_batch(db: AsyncSession, players: list[ArenaSessionPlaye
             game_name=data["game_name"],
             game_link=data["game_link"],
         )
+
     # Commit once after all emails are processed
     try:
         await db.commit()

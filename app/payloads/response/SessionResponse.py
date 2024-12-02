@@ -54,6 +54,7 @@ class SessionPlayerClientResponse(BaseModel):
     user_email: Optional[str]
     user_name: Optional[str]
     email_status: Optional[EmailStatus]
+    is_game_master: Optional[bool] = False
 
 
 class UserSession(BaseModel):

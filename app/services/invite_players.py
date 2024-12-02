@@ -108,6 +108,7 @@ async def invite_players(
             user_id=str(user.user_id) if user.user_id else None,
             organisation_code=session.organisation_code,
             email_status=EmailStatus.PENDING,  # Set initial email status to PENDING
+            is_game_master=(user.is_game_master if user.is_game_master is not None else False)
         )
         players_to_add.append(db_player)
 
@@ -119,6 +120,7 @@ async def invite_players(
             db=db,
             player=db_player,
             email=user.user_email,
+            is_game_master=(user.is_game_master if user.is_game_master is not None else False),
             fullname=user.user_fullname,
             organisation_name=organisation_name,
             game_name=game_name,
