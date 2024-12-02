@@ -20,10 +20,10 @@ async def get_module_by_game_by_type(game_id: str, types: list[ModuleForType], s
     Returns:
         list[ProjectModule]: A list of ProjectModule objects or an empty list if none are found.
     """
-    result = await session.execute(
-        select(ProjectModule).where(
-            ProjectModule.project_id == game_id,
-            ProjectModule.type.in_([str(mtype) for mtype in types])  # Correct usage of in_
-        )
-    )
+    types = [mtype.value for mtype in types]
+    query = (select(ProjectModule).where(
+        ProjectModule.project_id == game_id,
+        ProjectModule.module_for.in_(types)  # Correct usage of in_
+    ))
+    result = await session.execute(query)
     return result.scalars().all()
