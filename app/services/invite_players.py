@@ -1,4 +1,6 @@
 import re
+import uuid
+
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -99,6 +101,7 @@ async def invite_players(
 
         # Add player to list
         db_player = ArenaSessionPlayers(
+            id=str(uuid.uuid4()),
             session_id=session.id,
             user_name=user.user_fullname,
             user_email=user.user_email,

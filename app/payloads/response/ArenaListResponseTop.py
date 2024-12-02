@@ -12,7 +12,7 @@ class ArenaMembers(BaseModel):
 
 
 class ArenaListGroupUserClientResponse(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     user_email: Optional[str]
     user_name: Optional[str]
     picture: Optional[str]
