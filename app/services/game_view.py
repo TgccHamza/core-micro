@@ -85,8 +85,6 @@ async def _process_session_players(players: Sequence[ArenaSessionPlayers], users
     # Fetch all user details concurrently
     processed_players = []
 
-    print("=================================")
-    print(users)
     for player in players:
         user_detail = users.get(player.user_id, None)
         processed_player = GameViewSessionPlayerClientResponse(
