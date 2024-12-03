@@ -224,18 +224,16 @@ async def space_user(db: AsyncSession, user_id: str, org_id: str):
     # )
 
     project = await get_next_game_by_org_by_user(org_id=org_id, user_id=user_id, session=db)
-
-    role = await get_user_role_in_game_by_org(org_id, user_id, project.id, db)
-    if role == "player":
-        player = await get_player_id_by_game_by_user(project.id, user_id, db)
-        if player is not None and player.is_game_master:
-            role = "game_master"
-
     favorite_projects = await fetch_favorite_projects(db, user_id)
     recent_projects = await fetch_recent_projects(db, org_id, user_id)
     # Process project events
 
     if project:
+        role = await get_user_role_in_game_by_org(org_id, user_id, project.id, db)
+        if role == "player":
+            player = await get_player_id_by_game_by_user(project.id, user_id, db)
+            if player is not None and player.is_game_master:
+                role = "game_master"
         events = [await _process_single_event(db, project, role)]
     else:
         events = []
