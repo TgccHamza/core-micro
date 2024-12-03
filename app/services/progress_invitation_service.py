@@ -29,6 +29,7 @@ async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationP
                 status_code=404,
                 detail=f"Session with ID {data.session_id} not found."
             )
+
         if data.role == RoleType.PLAYER:
             for user_data in data.users:
                 result = await db.execute(
@@ -75,18 +76,10 @@ async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationP
                     db.add(new_player)
         elif data.role == RoleType.MODERATOR:
             for user_data in data.users:
-                result = await db.execute(
-                    select(ArenaSession).filter_by(
-                        id=data.session_id
-                    )
-                )
-                session = result.scalar()
-
-                if session:
-                    # Update player email status to reflect the progress
-                    session.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
-                    session.super_game_master_id = user_data.id
-                    db.add(session)
+                # Update player email status to reflect the progress
+                session.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
+                session.super_game_master_id = user_data.id
+                db.add(session)
 
         # Commit all changes to the database
         await db.commit()
