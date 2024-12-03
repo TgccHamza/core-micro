@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
@@ -7,6 +9,8 @@ from app.enums import EmailStatus
 from app.models import ArenaSession, ArenaSessionPlayers
 from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest, InvitationStatus, \
     RoleType
+
+logger = logging.getLogger(__name__)
 
 
 async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationProgressRequest):
@@ -75,7 +79,9 @@ async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationP
                     )
                     db.add(new_player)
         elif data.role.value == RoleType.MODERATOR.value:
+            logger.error("Moderator condition has been enter")
             for user_data in data.users:
+                logger.error("users has been looped")
                 # Update player email status to reflect the progress
                 session.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
                 session.super_game_master_id = user_data.id
