@@ -49,7 +49,7 @@ async def invite_managers(
             continue
 
         # Fetch user details if available
-        user_details = users.get(manager.user_email, None)
+        user_details = users.get(manager.user_id, None)
 
         # Create or update the manager record
         manager_record = create_or_update_manager(db, group, manager, user_details)

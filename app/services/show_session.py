@@ -58,7 +58,7 @@ async def map_session_to_response(db: AsyncSession, session: ArenaSession) -> Se
     players = await get_players_by_session(session.id, db)
     ids = await get_player_id_by_session(session.id, db)
     if len(ids) != 0:
-        users = await get_user_service().get_users_by_email(list(ids))
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = {}
     return SessionResponse(
@@ -122,7 +122,7 @@ async def _map_arena_group(group, db: AsyncSession) -> ArenaGroupResponse:
     managers = await get_manager_by_group(group.id, db)
     ids = await get_manager_id_by_group(group.id, db)
     if len(ids) != 0:
-        users = await get_user_service().get_users_by_email(list(ids))
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = {}
 
@@ -134,7 +134,7 @@ async def _map_arena_group(group, db: AsyncSession) -> ArenaGroupResponse:
 
 
 async def _map_group_manager(user, users: dict[str, UserResponse]) -> ArenaGroupUserResponse:
-    user_details = users.get(user.user_email, None)
+    user_details = users.get(user.user_id, None)
 
     """
     Maps ArenaGroup model to ArenaGroupResponse.
@@ -158,7 +158,7 @@ async def _map_players(players, users) -> List[SessionPlayerClientResponse]:
 
 
 async def _map_player(user, users) -> SessionPlayerClientResponse:
-    user_details = users.get(user.user_email, None)
+    user_details = users.get(user.user_id, None)
 
     return SessionPlayerClientResponse(
         id=user.id,

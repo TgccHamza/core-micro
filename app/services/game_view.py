@@ -120,7 +120,7 @@ async def _create_session_response(
     players = await get_players_by_session(session.id, db)
     ids = await get_player_id_by_session(session.id, db)
     if len(ids) != 0:
-        users = await get_user_service().get_users_by_email(list(ids))
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = list()
 
@@ -262,7 +262,7 @@ async def _create_arena_response(
         first_group = group
         manager_ids = await get_manager_id_by_group(first_group.id, db)
         if len(manager_ids) > 0:
-            users = await get_user_service().get_users_by_email(list(manager_ids))
+            users = await get_user_service().get_users_by_id(list(manager_ids))
         else:
             users = list()
         arena_resp.group = GameViewGroupResponse(

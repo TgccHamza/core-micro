@@ -101,7 +101,7 @@ class UserServiceClient:
                             first_name = full_name  # If only one name is provided, treat it as the first name
                             last_name = None  # No last name in this case
 
-                        items[user.get('email')] = UserResponse(
+                        items[user.get('user_id')] = UserResponse(
                             user_id=user.get("user_id", None),
                             email=user.get("email", None),
                             user_email=user.get("email", None),

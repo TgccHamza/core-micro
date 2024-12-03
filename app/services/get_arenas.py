@@ -79,7 +79,7 @@ async def process_groups(db_groups, db: AsyncSession) -> List[ArenaListGroupClie
             users = {}
 
         for manager in managers:
-            user_details = users.get(manager.user_email, None)
+            user_details = users.get(manager.user_id, None)
 
             if user_details:
                 group.managers.append(ArenaListGroupUserClientResponse(
@@ -115,14 +115,14 @@ async def process_players(db_sessions, db: AsyncSession) -> List[ArenaMembers]:
         session_players = await get_players_by_session(session.id, db)
         player_ids = await get_player_id_by_session(session.id, db)
         if len(player_ids) != 0:
-            users = await get_user_service().get_users_by_email(list(player_ids))
+            users = await get_user_service().get_users_by_id(list(player_ids))
         else:
             users = {}
 
         for player in session_players:
-            if player.user_email not in dict_players:
-                dict_players.add(player.user_email)
-                user_details = users.get(player.user_email, None)
+            if player.user_id not in dict_players:
+                dict_players.add(player.user_id)
+                user_details = users.get(player.user_id, None)
 
                 if user_details:
                     players.append(ArenaMembers(

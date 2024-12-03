@@ -41,7 +41,7 @@ async def process_group(db: AsyncSession, db_group: Group) -> GroupListClientRes
     managers = await get_manager_by_group(db_group.id, db)
     id_managers = await get_manager_id_by_group(db_group.id, db)
     if len(id_managers) != 0:
-        users = await get_user_service().get_users_by_email(list(id_managers))
+        users = await get_user_service().get_users_by_id(list(id_managers))
     else:
         users = {}
 
@@ -80,7 +80,7 @@ async def process_group(db: AsyncSession, db_group: Group) -> GroupListClientRes
 
 # Process each manager for the group
 def process_manager(manager: GroupUsers, users: dict[str, UserResponse]) -> GroupListUserClientResponse:
-    user_details = users.get(manager.user_email, None)
+    user_details = users.get(manager.user_id, None)
     return GroupListUserClientResponse(
         id=manager.id,
         user_id=user_details.user_id if user_details else manager.user_id,

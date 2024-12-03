@@ -86,7 +86,7 @@ async def process_group(db: AsyncSession, db_group: Group) -> GroupClientRespons
 
 # Process each manager for the group
 def process_manager(manager: GroupUsers, users: dict[str, UserResponse]) -> GroupUserClientResponse:
-    user_details = users.get(manager.user_email, None)
+    user_details = users.get(manager.user_id, None)
     return GroupUserClientResponse(
         id=manager.id,
         user_id=user_details.user_id if user_details else manager.user_id,

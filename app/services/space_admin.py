@@ -39,7 +39,7 @@ async def _process_group_managers(
     processed_managers = []
 
     for manager in (await get_manager_by_group(db_group.id, db)):
-        user_detail = users.get(manager.user_email, None)
+        user_detail = users.get(manager.user_id, None)
         processed_manager = ManagerResponse(
             user_id=user_detail.get('user_id') if user_detail else str(manager.user_id),
             email=user_detail.get('user_email') if user_detail else manager.user_email,
@@ -105,7 +105,7 @@ async def _process_favorite_project(db: AsyncSession, project):
     ids = await get_manager_id_by_game(project.id, db)
 
     if len(ids) != 0:
-        users = await get_user_service().get_users_by_email(list(ids))
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = dict()
 
