@@ -66,6 +66,7 @@ class UserSession(BaseModel):
 class SessionResponse(BaseModel):
     id: Optional[UUID]
     super_game_master_mail: Optional[str] = None
+    super_game_master_id: Optional[str] = None
     arena_id: Optional[UUID] = None
     project_id: Optional[UUID] = None
     period_type: Optional[PeriodType] = None  # You can change this to an Enum if needed

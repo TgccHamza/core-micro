@@ -4,21 +4,19 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 class InvitationUserRequest(BaseModel):
-    email: Optional[str] = None
     id: Optional[str] = None
-
 
 # Enum for possible statuses
 class InvitationStatus(str, Enum):
-    EMAIL_RECEIVED = "email_received"  #User has received the email
-    INVITATION_ACCEPTED = "invitation_accepted"  # User accepted the invitation
+    EMAIL_RECEIVED = "email_received"
+    INVITATION_ACCEPTED = "invitation_accepted"
 
 # Enum for possible statuses
 class RoleType(str, Enum):
-    GAME_MASTER = "game_master"  #User has received the email
-    PLAYER = "player"  # User accepted the invitation
-    MANAGER = "manager"  # User accepted the invitation
-    MODERATOR = "moderator"  # User accepted the invitation
+    GAME_MASTER = "game_master"
+    PLAYER = "player"
+    MANAGER = "manager"
+    MODERATOR = "moderator"
 
 
 class WebhookInvitationProgressRequest(BaseModel):
