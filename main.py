@@ -100,6 +100,28 @@ async def run_migrations():
         )
 
 
+
+@app.post("/webhook/invitation/progress/{token}")
+async def progress_invitation():
+    """Endpoint to run Alembic migrations."""
+    try:
+        alembic_path = '/app/app/alembic.ini'
+        alembic_cfg = Config(alembic_path)
+        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL.replace('%', '%%'))
+        command.upgrade(alembic_cfg, "head")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Migrations applied successfully"}
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": f"Migration failed: {e}"}
+        )
+
+
 @app.post("/server/generate-migration")
 async def generate_migrations():
     """Endpoint to run Alembic migrations."""

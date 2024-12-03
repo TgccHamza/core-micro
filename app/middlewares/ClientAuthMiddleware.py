@@ -26,9 +26,12 @@ class ClientAuthMiddleware(BaseHTTPMiddleware):
         }
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split("Bearer ")[1]
-            if token is None:
+            if token is None or token == "":
                 token = request.cookies.get("access_token", None)
-            if token:
+        else:
+            token = request.cookies.get("access_token", None)
+
+        if token:
                 try:
                     # Decode the JWT without validation
                     # You can provide `options={"verify_signature": False}` to skip verification
