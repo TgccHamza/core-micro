@@ -185,7 +185,7 @@ async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_c
                     db: AsyncSession = Depends(get_db_async)):
     try:
         org_id = jwt_claims.get("org_id")
-        user_id = jwt_claims.get("user_id")
+        user_id = jwt_claims.get("uid")
         # email = jwt_claims.get("email")
         role = jwt_claims.get("role")
         if role == "admin":
