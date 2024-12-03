@@ -75,7 +75,7 @@ stages:
 
                 - task: replacetokens@6
                   inputs:
-                    sources: "$(Pipeline.Workspace)/s/k8s/gamicore-deployment.yaml"
+                    sources: "$(Pipeline.Workspace)/s/k8s/deployment-dev.yaml"
                     tokenPattern: "azpipelines"
                     logLevel: "debug"
                     ifNoFilesFound: "warn"
@@ -86,5 +86,5 @@ stages:
                     connectionType: "kubernetesServiceConnection"
                     kubernetesServiceConnection: "dev-KubernetesCluster2-gamitool-dev-1730970145939"
                     namespace: "gamitool-dev"
-                    manifests: "$(Pipeline.Workspace)/s/k8s/gamicore-deployment.yaml"
+                    manifests: "$(Pipeline.Workspace)/s/k8s/deployment-dev.yaml"
                     containers: "$(acrUrl)/$(imageName):$(imageTag)"

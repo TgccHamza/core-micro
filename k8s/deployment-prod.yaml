@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gamicore
+  name: $(imageName)
   labels:
-    app: gamicore
+    app: $(imageName)
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: gamicore
+      app: $(imageName)
   template:
     metadata:
       labels:
-        app: gamicore
+        app: $(imageName)
     spec:
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-      - name: gamicore
-        image: tg2cregistry.azurecr.io/$(imageName):$(imageTag)  # Update with your image repository
+      - name: $(imageName)
+        image: $(acrUrl)/$(imageName):$(imageTag)  # Update with your image repository
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -35,7 +35,7 @@ spec:
           name: grpc
         resources:
           requests:
-            cpu: "50m"
+            cpu: "100m"
             memory: "128Mi"
           limits:
             cpu: "200m"
@@ -63,9 +63,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gamicore
+  name: $(imageName)
   labels:
-    app: gamicore
+    app: $(imageName)
   annotations:
     grpc.kubernetes.io/timeout-seconds: "120"
     grpc.kubernetes.io/keepalive-time-seconds: "60"
@@ -84,4 +84,34 @@ spec:
     name: grpc
     appProtocol: grpc
   selector:
-    app: gamicore
+    app: $(imageName)
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: $(imageName)-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: $(imageName)
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 60

@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $(imageName)
+  labels:
+    app: $(imageName)
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: $(imageName)
+  template:
+    metadata:
+      labels:
+        app: $(imageName)
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: $(imageName)
+        image: $(acrUrl)/$(imageName):$(imageTag)  # Update with your image repository
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          # readOnlyRootFilesystem: true
+        env:
+          - name: SEGMENT_MICRO
+            value: /gamicore
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 50051
+          name: grpc
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        envFrom:
+        - configMapRef:
+            name: gamicore-config
+        - secretRef:
+            name: gamicore-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $(imageName)
+  labels:
+    app: $(imageName)
+  annotations:
+    grpc.kubernetes.io/timeout-seconds: "120"
+    grpc.kubernetes.io/keepalive-time-seconds: "60"
+    grpc.kubernetes.io/keepalive-timeout-seconds: "20"
+    grpc.kubernetes.io/max-message-size: "104857600"  # 100MB in bytes
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: 50051
+    targetPort: grpc
+    protocol: TCP
+    name: grpc
+    appProtocol: grpc
+  selector:
+    app: $(imageName)
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: $(imageName)-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: $(imageName)
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 60
