@@ -1,0 +1,71 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.future import select
+from fastapi import HTTPException
+
+from app.enums import EmailStatus
+from app.models import ArenaSession, ArenaSessionPlayers
+from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest, InvitationStatus
+
+
+async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationProgressRequest):
+    """
+    Processes invitation progress updates by updating the database based on the webhook data.
+
+    Args:
+        db (AsyncSession): SQLAlchemy asynchronous database session.
+        data (WebhookInvitationProgressRequest): Webhook payload containing progress information.
+
+    Returns:
+        dict: A dictionary with a success message.
+    """
+    try:
+        # Step 1: Validate session existence
+        result = await db.execute(select(ArenaSession).filter_by(id=data.session_id))
+        session = result.scalars().first()
+        if not session:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session with ID {data.session_id} not found."
+            )
+
+        # Step 3: Process each user in the payload
+        for user_data in data.users:
+            result = await db.execute(
+                select(ArenaSessionPlayers).filter_by(
+                    session_id=data.session_id,
+                    user_email=user_data.email
+                )
+            )
+            player = result.scalars().first()
+
+            if player:
+                # Update player email status to reflect the progress
+                player.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
+            else:
+                # Optionally create a new player if not found
+                new_player = ArenaSessionPlayers(
+                    session_id=data.session_id,
+                    user_email=user_data.email,
+                    user_id=user_data.id,
+                    email_status=EmailStatus.SENT
+                )
+                db.add(new_player)
+
+        # Commit all changes to the database
+        await db.commit()
+
+        return {"message": "Invitation progress updated successfully."}
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error occurred: {str(e)}"
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error occurred: {str(e)}"
+        )

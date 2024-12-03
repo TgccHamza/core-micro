@@ -5,6 +5,9 @@ import sys
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
+from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest
+from app.services.progress_invitation_service import progress_invitation_service
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Depends, status, HTTPException
@@ -99,29 +102,6 @@ async def run_migrations():
             content={"message": f"Migration failed: {e}"}
         )
 
-
-
-@app.post("/webhook/invitation/progress/{token}")
-async def progress_invitation():
-    """Endpoint to run Alembic migrations."""
-    try:
-        alembic_path = '/app/app/alembic.ini'
-        alembic_cfg = Config(alembic_path)
-        alembic_cfg.set_main_option('sqlalchemy.url', DATABASE_URL.replace('%', '%%'))
-        command.upgrade(alembic_cfg, "head")
-
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "Migrations applied successfully"}
-        )
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": f"Migration failed: {e}"}
-        )
-
-
 @app.post("/server/generate-migration")
 async def generate_migrations():
     """Endpoint to run Alembic migrations."""
@@ -141,6 +121,20 @@ async def generate_migrations():
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": f"Migration failed to generate: {e}"}
+        )
+
+
+
+
+@app.post("/webhook/invitation/progress")
+async def progress_invitation(data: WebhookInvitationProgressRequest, db: AsyncSession = Depends(get_db_async)):
+    """Endpoint to run Alembic migrations."""
+    try:
+        return await progress_invitation_service(db, data)
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": f"Migration failed: {e}"}
         )
 
 
