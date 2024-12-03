@@ -8,10 +8,11 @@ from app.repositories.get_arenas_by_group import get_arenas_by_group
 from app.repositories.get_favorite_projects_by_user import get_favorite_projects_by_user
 from app.repositories.get_groups_by_game import get_groups_by_game
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_game import get_manager_email_by_game
-from app.repositories.get_next_game_by_org import get_next_game_by_org
+from app.repositories.get_manager_id_by_game import get_manager_id_by_game
 from app.repositories.get_next_game_by_org_by_user import get_next_game_by_org_by_user
+from app.repositories.get_player_id_by_game_by_user import get_player_id_by_game_by_user
 from app.repositories.get_recent_projects_by_org_by_user import get_recent_projects_by_org_by_user
+from app.repositories.get_user_role_in_game_by_org import get_user_role_in_game_by_org
 
 logger = logging.getLogger(__name__)
 from app.models import Group, Project
@@ -51,7 +52,7 @@ async def _process_group_managers(
     return processed_managers
 
 
-async def _process_single_event(db: AsyncSession, project: Project):
+async def _process_single_event(db: AsyncSession, project: Project, role: str):
     """
     Process a single project event with player count.
 
@@ -64,6 +65,7 @@ async def _process_single_event(db: AsyncSession, project: Project):
     return EventGameResponse(
         id=project.id,
         game_name=project.name,
+        role=role,
         client_name=project.client_name,
         visibility=project.visibility,
         online_date=project.start_time,
@@ -84,33 +86,39 @@ async def fetch_favorite_projects(db: AsyncSession, user_id: str):
     """
     favorite_projects = await get_favorite_projects_by_user(user_id, db)
     favorite_tasks = [
-        await _process_favorite_project(db, fav_project)
+        await _process_favorite_project(db, fav_project, user_id)
         for fav_project in favorite_projects
     ]
 
     return favorite_tasks
 
 
-async def _process_favorite_project(db: AsyncSession, project):
+async def _process_favorite_project(db: AsyncSession, project, user_id: str):
     """
-    Process a single favorite project with details.
+     Process a single favorite project with details.
 
     :param db: Database session
     :param project: Favorite project model instance
     :return: Favorite game response
     """
+
     total_players = await count_session_players(db, project.module_game_id, project.id)
-    emails = await get_manager_email_by_game(project.id, db)
-    print("Hello world =============================================")
-    print(emails)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_game(project.id, db)
+
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = dict()
-    print("_process_favorite_project: Users")
-    print(users)
+
+    role = await get_user_role_in_game_by_org(project.organisation_code, user_id, project.id, db)
+    if role == "player":
+        player = await get_player_id_by_game_by_user(project.id, user_id, db)
+        if player is not None and player.is_game_master:
+            role = "game_master"
+
     return FavoriteGameResponse(
         id=project.id,
+        role=role,
         game_name=project.name,
         client_name=project.client_name,
         visibility=project.visibility,
@@ -134,7 +142,7 @@ async def _process_favorite_project(db: AsyncSession, project):
     )
 
 
-async def fetch_recent_projects(db: AsyncSession, org_id, user_email: str):
+async def fetch_recent_projects(db: AsyncSession, org_id, user_id: str):
     """
     Fetch recent projects for an organization.
 
@@ -142,17 +150,17 @@ async def fetch_recent_projects(db: AsyncSession, org_id, user_email: str):
     :param org_id: Organization identifier
     :return: List of recent game responses
     """
-    recent_projects = await get_recent_projects_by_org_by_user(org_id, user_email, db)
+    recent_projects = await get_recent_projects_by_org_by_user(org_id, user_id, db)
 
     recent_tasks = [
-        await _process_recent_project(db, project)
+        await _process_recent_project(db, project, user_id)
         for project in recent_projects
     ]
 
     return recent_tasks
 
 
-async def _process_recent_project(db, project):
+async def _process_recent_project(db, project, user_id: str):
     """
     Process a single recent project with details.
 
@@ -161,13 +169,21 @@ async def _process_recent_project(db, project):
     :return: Recent game response
     """
     total_players = await count_session_players(db, project.module_game_id, project.id)
-    emails = await get_manager_email_by_game(project.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_game(project.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = dict()
+
+    role = await get_user_role_in_game_by_org(project.organisation_code, user_id, project.id, db)
+    if role == "player":
+        player = await get_player_id_by_game_by_user(project.id, user_id, db)
+        if player is not None and player.is_game_master:
+            role = "game_master"
+
     return RecentGameResponse(
         id=project.id,
+        role=role,
         game_name=project.name,
         client_name=project.client_name,
         visibility=project.visibility,
@@ -191,12 +207,12 @@ async def _process_recent_project(db, project):
     )
 
 
-async def space_user(db: AsyncSession, user_id: str, user_email: str, org_id: str):
+async def space_user(db: AsyncSession, user_id: str, org_id: str):
     """
     Comprehensive admin space retrieval with concurrent processing.
 
     :param db: Database session
-    :param user_email: User identifier
+    :param user_id: User identifier
     :param org_id: Organization identifier
     :return: AdminSpaceClientResponse
     """
@@ -207,13 +223,20 @@ async def space_user(db: AsyncSession, user_id: str, user_email: str, org_id: st
     #     recent_projects_coro
     # )
 
-    project = await get_next_game_by_org_by_user(org_id=org_id, user_email=user_email, session=db)
+    project = await get_next_game_by_org_by_user(org_id=org_id, user_id=user_id, session=db)
+
+    role = await get_user_role_in_game_by_org(org_id, user_id, project.id, db)
+    if role == "player":
+        player = await get_player_id_by_game_by_user(project.id, user_id, db)
+        if player is not None and player.is_game_master:
+            role = "game_master"
+
     favorite_projects = await fetch_favorite_projects(db, user_id)
-    recent_projects = await fetch_recent_projects(db, org_id, user_email)
+    recent_projects = await fetch_recent_projects(db, org_id, user_id)
     # Process project events
 
     if project:
-        events = [await _process_single_event(db, project)]
+        events = [await _process_single_event(db, project, role)]
     else:
         events = []
 

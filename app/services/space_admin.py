@@ -8,9 +8,12 @@ from app.repositories.get_arenas_by_group import get_arenas_by_group
 from app.repositories.get_favorite_projects_by_user import get_favorite_projects_by_user
 from app.repositories.get_groups_by_game import get_groups_by_game
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_game import get_manager_email_by_game
+from app.repositories.get_manager_id_by_game import get_manager_id_by_game
 from app.repositories.get_next_game_by_org import get_next_game_by_org
+from app.repositories.get_player_id_by_game import get_player_id_by_game
+from app.repositories.get_player_id_by_game_by_user import get_player_id_by_game_by_user
 from app.repositories.get_recent_projects_by_org import get_recent_projects_by_org
+from app.repositories.get_user_role_in_game_by_org import get_user_role_in_game_by_org
 
 logger = logging.getLogger(__name__)
 from app.models import Group, Project
@@ -48,6 +51,7 @@ async def _process_group_managers(
         processed_managers.append(processed_manager)
 
     return processed_managers
+
 
 async def _process_single_event(db: AsyncSession, project: Project):
     """
@@ -98,15 +102,13 @@ async def _process_favorite_project(db: AsyncSession, project):
     :return: Favorite game response
     """
     total_players = await count_session_players(db, project.module_game_id, project.id)
-    emails = await get_manager_email_by_game(project.id, db)
-    print("Hello world =============================================")
-    print(emails)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_game(project.id, db)
+
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = dict()
-    print("_process_favorite_project: Users")
-    print(users)
+
     return FavoriteGameResponse(
         id=project.id,
         game_name=project.name,
@@ -159,9 +161,9 @@ async def _process_recent_project(db, project):
     :return: Recent game response
     """
     total_players = await count_session_players(db, project.module_game_id, project.id)
-    emails = await get_manager_email_by_game(project.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_game(project.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = dict()
     return RecentGameResponse(

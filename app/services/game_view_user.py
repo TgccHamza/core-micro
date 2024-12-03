@@ -16,9 +16,10 @@ from app.repositories.get_arena_by_id import get_arena_by_id
 from app.repositories.get_game_by_id import get_game_by_id
 from app.repositories.get_group_by_arena import get_group_by_arena
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
 from app.repositories.get_module_by_game_by_type import get_module_by_game_by_type
-from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_player_id_by_game_by_user import get_player_id_by_game_by_user
+from app.repositories.get_player_id_by_session import get_player_id_by_session
 from app.repositories.get_player_for_session_by_email import get_player_for_session_by_email
 from app.repositories.get_players_by_session import get_players_by_session
 from app.repositories.get_session_by_game import get_session_by_game
@@ -98,7 +99,7 @@ async def _process_session_players(players: Sequence[ArenaSessionPlayers], users
     processed_players = []
 
     for player in players:
-        user_detail = users.get(player.user_email, None)
+        user_detail = users.get(player.user_id, None)
         processed_player = GameViewSessionPlayerClientResponse(
             user_id=user_detail.get('user_id') if user_detail else str(player.user_id),
             email=user_detail.get('user_email') if user_detail else player.user_email,
@@ -129,7 +130,7 @@ async def _process_session_players_for_moderator(players: Sequence[ArenaSessionP
     processed_players = []
 
     for player in players:
-        user_detail = users.get(player.user_email, None)
+        user_detail = users.get(player.user_id, None)
         processed_player = GameViewModeratorSessionPlayerClientResponse(
             user_id=user_detail.get('user_id') if user_detail else str(player.user_id),
             email=user_detail.get('user_email') if user_detail else player.user_email,
@@ -160,9 +161,9 @@ async def _create_session_response(
         GameViewSessionResponse: Structured session response
     """
     players = await get_players_by_session(session.id, db)
-    emails = await get_player_email_by_session(session.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_player_id_by_session(session.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = list()
     return GameViewSessionResponse(
@@ -197,9 +198,9 @@ async def _create_session_for_moderator_response(
     db_arena = await get_arena_by_id(session.arena_id, db)
 
     players = await get_players_by_session(session.id, db)
-    emails = await get_player_email_by_session(session.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_player_id_by_session(session.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = list()
     links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.MODERATOR], db)
@@ -224,7 +225,7 @@ async def _create_session_for_moderator_response(
 # Update the session response creation in the previous function
 async def _create_session_for_player_response(
         session: ArenaSession,
-        user_email: str,
+        user_id: str,
         db: AsyncSession
 ) -> GameViewPlayerSessionResponse:
     """
@@ -239,7 +240,7 @@ async def _create_session_for_player_response(
     """
 
     db_arena = await get_arena_by_id(session.arena_id, db)
-    player = await get_player_for_session_by_email(session.id, user_email, db)
+    player = await get_player_for_session_by_email(session.id, user_id, db)
 
     if player.is_game_master:
         links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.GAMEMASTER], db)
@@ -265,7 +266,7 @@ async def _create_session_for_player_response(
 
 
 # Modify the _build_game_arenas function to pass db session
-async def _build_game_arenas(user_email: str,
+async def _build_game_arenas(user_id: str,
                              db: AsyncSession,
                              game: Project
                              ) -> List[GameViewArenaResponse]:
@@ -281,7 +282,7 @@ async def _build_game_arenas(user_email: str,
     """
     arena_map: Dict[str, GameViewArenaResponse] = {}
     arena_sessions = await get_session_by_game(game.id, db)
-    # arena_sessions = await get_session_by_game_for_player(game.id, user_email, db)
+    # arena_sessions = await get_session_by_game_for_player(game.id, `user_email`, db)
     # arena_sessions = await get_session_by_game_for_moderator(game.id, user_email, db)
 
     for arena_session in arena_sessions:
@@ -303,7 +304,7 @@ async def _build_game_arenas(user_email: str,
 
 
 # Modify the _build_game_arenas function to pass db session
-async def _build_game_sessions_for_moderator(user_email: str,
+async def _build_game_sessions_for_moderator(user_id: str,
                                              db: AsyncSession,
                                              game: Project
                                              ) -> List[GameViewModeratorSessionResponse]:
@@ -318,7 +319,7 @@ async def _build_game_sessions_for_moderator(user_email: str,
         List[GameViewSessionResponse]: Detailed arena responses
     """
 
-    arena_sessions = await get_session_by_game_for_moderator(game.id, user_email, db)
+    arena_sessions = await get_session_by_game_for_moderator(game.id, user_id, db)
     sessions = []
     for arena_session in arena_sessions:
         sessions.append(
@@ -329,7 +330,7 @@ async def _build_game_sessions_for_moderator(user_email: str,
 
 
 # Modify the _build_game_arenas function to pass db session
-async def _build_game_sessions_for_player(user_email: str,
+async def _build_game_sessions_for_player(user_id: str,
                                           db: AsyncSession,
                                           game: Project
                                           ) -> List[GameViewPlayerSessionResponse]:
@@ -344,11 +345,11 @@ async def _build_game_sessions_for_player(user_email: str,
         List[GameViewSessionResponse]: Detailed arena responses
     """
 
-    arena_sessions = await get_session_by_game_for_player(game.id, user_email, db)
+    arena_sessions = await get_session_by_game_for_player(game.id, user_id, db)
     sessions = []
     for arena_session in arena_sessions:
         sessions.append(
-            await _create_session_for_player_response(arena_session, user_email, db)
+            await _create_session_for_player_response(arena_session, user_id, db)
         )
 
     return sessions
@@ -358,13 +359,13 @@ async def _build_game_sessions_for_player(user_email: str,
 async def _build_game_view_manager(
         db: AsyncSession,
         org_id: str,
-        user_email: str,
+        user_id: str,
         game_id: str):
     # Fetch game with optimized query
     game = await get_game_by_id(game_id, org_id, db)
 
     # Build arenas with sessions and groups (pass db session)
-    arenas = await _build_game_arenas(user_email, db, game)
+    arenas = await _build_game_arenas(user_id, db, game)
 
     # Prepare response
     return GameViewClientResponse(
@@ -386,13 +387,13 @@ async def _build_game_view_manager(
 async def _build_game_view_moderator(
         db: AsyncSession,
         org_id: str,
-        user_email: str,
+        user_id: str,
         game_id: str):
     # Fetch game with optimized query
     game = await get_game_by_id(game_id, org_id, db)
 
     # Build arenas with sessions and groups (pass db session)
-    sessions = await _build_game_sessions_for_moderator(user_email, db, game)
+    sessions = await _build_game_sessions_for_moderator(user_id, db, game)
 
     # Prepare response
     return GameViewModeratorClientResponse(
@@ -413,16 +414,21 @@ async def _build_game_view_moderator(
 async def _build_game_view_player(
         db: AsyncSession,
         org_id: str,
-        user_email: str,
+        user_id: str,
         game_id: str) -> GameViewPlayerClientResponse:
     game = await get_game_by_id(game_id, org_id, db)
 
     # Build arenas with sessions and groups (pass db session)
-    sessions = await _build_game_sessions_for_player(user_email, db, game)
+    sessions = await _build_game_sessions_for_player(user_id, db, game)
+    role = "player"
+    player = await get_player_id_by_game_by_user(game_id, user_id, db)
+    if player is not None and player.is_game_master:
+        role = "game_master"
 
     # Prepare response
     return GameViewPlayerClientResponse(
         id=game.id,
+        role=role,
         game_name=game.name,
         client_name=game.client_name,
         description=game.description,
@@ -439,7 +445,7 @@ async def _build_game_view_player(
 async def gameViewUser(
         db: AsyncSession,
         org_id: str,
-        user_email: str,
+        user_id: str,
         game_id: str
 ) -> GameViewClientResponse | GameViewModeratorClientResponse | GameViewPlayerClientResponse:
     """
@@ -448,7 +454,7 @@ async def gameViewUser(
     Args:
         db (AsyncSession): Database session
         org_id (str): Organization identifier
-        user_email (str): Email identifier
+        user_id (str): Email identifier
         game_id (str): Game identifier
 
     Returns:
@@ -457,16 +463,17 @@ async def gameViewUser(
     Raises:
         HTTPException: If game is not found
     """
-    role = await get_user_role_in_game_by_org(org_id, user_email, game_id, db)
+
+    role = await get_user_role_in_game_by_org(org_id, user_id, game_id, db)
     if role is None:
         raise HTTPException(status_code=400, detail="You dont have access for this game")
 
     if role == 'manager':
-        return await _build_game_view_manager(db, org_id, user_email, game_id)
+        return await _build_game_view_manager(db, org_id, user_id, game_id)
     elif role == 'player':
-        return await _build_game_view_player(db, org_id, user_email, game_id)
+        return await _build_game_view_player(db, org_id, user_id, game_id)
     else:
-        return await _build_game_view_moderator(db, org_id, user_email, game_id)
+        return await _build_game_view_moderator(db, org_id, user_id, game_id)
 
 
 async def _create_arena_response(
@@ -489,9 +496,9 @@ async def _create_arena_response(
     group = await get_group_by_arena(arena.id, db)
     if group:
         first_group = group
-        manager_emails = await get_manager_email_by_group(first_group.id, db)
-        if len(manager_emails) > 0:
-            users = await get_user_service().get_users_by_email(list(manager_emails))
+        manager_ids = await get_manager_id_by_group(first_group.id, db)
+        if len(manager_ids) > 0:
+            users = await get_user_service().get_users_by_id(list(manager_ids))
         else:
             users = list()
         arena_resp.group = GameViewGroupResponse(

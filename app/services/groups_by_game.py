@@ -11,7 +11,7 @@ from app.repositories.get_arenas_by_group import get_arenas_by_group
 from app.repositories.get_game_by_id import get_game_by_id
 from app.repositories.get_groups_by_game import get_groups_by_game
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_game import get_manager_email_by_game
+from app.repositories.get_manager_id_by_game import get_manager_id_by_game
 from app.services.user_service import get_user_service
 
 
@@ -34,8 +34,8 @@ async def groups_by_game(db_session: AsyncSession, game_id: str, org_id: str) ->
 
     db_groups = await get_groups_by_game(game_id=game_id, session=db_session)
     groups = []
-    emails = await get_manager_email_by_game(game_id=game_id, session=db_session)
-    users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_game(game_id=game_id, session=db_session)
+    users = await get_user_service().get_users_by_id(list(ids))
     for db_group in db_groups:
         # Build group details
         group = GroupByGameResponse(

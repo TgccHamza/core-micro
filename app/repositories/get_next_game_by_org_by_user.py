@@ -5,14 +5,14 @@ from sqlalchemy.orm import aliased
 from app.models import Project, GroupUsers, ArenaSessionPlayers, ArenaSession, GroupProjects
 
 
-async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: AsyncSession) -> Project:
+async def get_next_game_by_org_by_user(org_id: str, user_id: str, session: AsyncSession) -> Project:
     """
     Fetches the next project (game) by organization code, ordered by start_time,
     ensuring that the project ID exists in relevant subqueries.
 
     Args:
         org_id (str): The organization code.
-        user_email (str): The user's email.
+        user_id (str): The user's email.
         session (AsyncSession): The asynchronous SQLAlchemy session.
 
     Returns:
@@ -25,7 +25,7 @@ async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: As
         .distinct()
         .join(GroupUsers, GroupProjects.group_id == GroupUsers.group_id)
         .where(
-            GroupUsers.user_email == user_email,
+            GroupUsers.user_id == user_id,
             GroupProjects.project_id == Project.id  # Ensures project is part of group_projects
         )
     )
@@ -36,7 +36,7 @@ async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: As
         .distinct()
         .join(ArenaSessionPlayers, ArenaSession.id == ArenaSessionPlayers.session_id)
         .where(
-            ArenaSessionPlayers.user_email == user_email
+            ArenaSessionPlayers.user_id == user_id
             ,
             ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
         )
@@ -46,7 +46,7 @@ async def get_next_game_by_org_by_user(org_id: str, user_email: str, session: As
         select(ArenaSession.project_id)
         .distinct()
         .where(
-            ArenaSession.super_game_master_mail == user_email
+            ArenaSession.super_game_master_id == user_id
             ,
             ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
         )

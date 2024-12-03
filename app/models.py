@@ -274,6 +274,7 @@ class ArenaSession(Base):
     view_access = Column(Enum(ViewAccess), nullable=True)
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
     super_game_master_mail = Column(String(36), nullable=True)
+    super_game_master_id = Column(String(36), nullable=True)
     player_module_id = Column(String(36), nullable=True)
     gamemaster_module_id = Column(String(36), nullable=True)
     super_game_master_module_id = Column(String(36), nullable=True)

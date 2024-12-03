@@ -5,7 +5,8 @@ from fastapi import HTTPException
 
 from app.enums import EmailStatus
 from app.models import ArenaSession, ArenaSessionPlayers
-from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest, InvitationStatus
+from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest, InvitationStatus, \
+    RoleType
 
 
 async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationProgressRequest):
@@ -28,29 +29,64 @@ async def progress_invitation_service(db: AsyncSession, data: WebhookInvitationP
                 status_code=404,
                 detail=f"Session with ID {data.session_id} not found."
             )
-
-        # Step 3: Process each user in the payload
-        for user_data in data.users:
-            result = await db.execute(
-                select(ArenaSessionPlayers).filter_by(
-                    session_id=data.session_id,
-                    user_email=user_data.email
+        if data.role == RoleType.PLAYER:
+            for user_data in data.users:
+                result = await db.execute(
+                    select(ArenaSessionPlayers).filter_by(
+                        session_id=data.session_id,
+                        user_id=user_data.id
+                    )
                 )
-            )
-            player = result.scalars().first()
+                player = result.scalars().first()
 
-            if player:
-                # Update player email status to reflect the progress
-                player.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
-            else:
-                # Optionally create a new player if not found
-                new_player = ArenaSessionPlayers(
-                    session_id=data.session_id,
-                    user_email=user_data.email,
-                    user_id=user_data.id,
-                    email_status=EmailStatus.SENT
+                if player:
+                    # Update player email status to reflect the progress
+                    player.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
+                else:
+                    # Optionally create a new player if not found
+                    new_player = ArenaSessionPlayers(
+                        session_id=data.session_id,
+                        user_id=user_data.id,
+                        is_game_master=False,
+                        email_status=EmailStatus.SENT
+                    )
+                    db.add(new_player)
+        elif data.role == RoleType.GAME_MASTER:
+            for user_data in data.users:
+                result = await db.execute(
+                    select(ArenaSessionPlayers).filter_by(
+                        session_id=data.session_id,
+                        user_id=user_data.id
+                    )
                 )
-                db.add(new_player)
+                player = result.scalars().first()
+
+                if player:
+                    # Update player email status to reflect the progress
+                    player.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
+                else:
+                    # Optionally create a new player if not found
+                    new_player = ArenaSessionPlayers(
+                        session_id=data.session_id,
+                        user_id=user_data.id,
+                        is_game_master=True,
+                        email_status=EmailStatus.SENT
+                    )
+                    db.add(new_player)
+        elif data.role == RoleType.MODERATOR:
+            for user_data in data.users:
+                result = await db.execute(
+                    select(ArenaSession).filter_by(
+                        id=data.session_id
+                    )
+                )
+                session = result.scalar()
+
+                if session:
+                    # Update player email status to reflect the progress
+                    session.email_status = EmailStatus.DELIVERED if data.status == InvitationStatus.INVITATION_ACCEPTED else EmailStatus.SENT
+                    session.super_game_master_id = user_data.id
+                    db.add(session)
 
         # Commit all changes to the database
         await db.commit()

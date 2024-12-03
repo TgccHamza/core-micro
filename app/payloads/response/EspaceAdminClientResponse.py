@@ -15,6 +15,7 @@ class ProjectUserResponse(BaseModel):
 
 class EventGameResponse(BaseModel):
     id: str
+    role: str = "owner"
     game_name: Optional[str] = None
     client_name: Optional[str] = None
     visibility: Optional[str] = None
@@ -44,6 +45,7 @@ class GroupResponse(BaseModel):
 
 class RecentGameResponse(BaseModel):
     id: str
+    role: str = "owner"
     game_name: Optional[str] = None
     client_name: Optional[str] = None
     visibility: Optional[str] = None
@@ -56,6 +58,7 @@ class RecentGameResponse(BaseModel):
 
 class FavoriteGameResponse(BaseModel):
     id: str
+    role: str = "owner"
     game_name: Optional[str] = None
     client_name: Optional[str] = None
     visibility: Optional[str] = None

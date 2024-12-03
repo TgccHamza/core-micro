@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Group, GroupUsers  # Assuming these are your models
 from app.payloads.request.GroupInviteManagerRequest import GroupManager
 from app.payloads.response.UserResponse import UserResponse
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
 from app.services.organisation_service import get_organisation_service  # Assuming these are your services
 from app.services.send_invite_manager import send_invite_manager
 from app.services.user_service import get_user_service  # Assuming these are your services
@@ -35,13 +35,14 @@ async def invite_managers(
     organisation_name = await get_organisation_service().get_organisation_name(group.organisation_code)
 
     # Fetch all existing invited emails for the group
-    existing_emails = await get_manager_email_by_group(group.id, db)
-    existing_emails = list(existing_emails)
-    if len(existing_emails) != 0:
-        users = await get_user_service().get_users_by_email(existing_emails)
+    existing_ids = await get_manager_id_by_group(group.id, db)
+    existing_ids = list(existing_ids)
+    if len(existing_ids) != 0:
+        users = await get_user_service().get_users_by_id(existing_ids)
     else:
         users = {}
 
+    existing_emails = [email for email in users.keys()]
     # Process each manager
     for manager in managers:
         if should_skip_invitation(manager, existing_emails):

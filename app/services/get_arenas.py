@@ -10,8 +10,8 @@ from app.payloads.response.ArenaListResponseTop import ArenaListResponseTop, Are
 from app.repositories.get_arenas_by_org import get_arenas_by_org
 from app.repositories.get_groups_by_arena import get_groups_by_arena
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
-from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
+from app.repositories.get_player_id_by_session import get_player_id_by_session
 from app.repositories.get_players_by_session import get_players_by_session
 from app.repositories.get_session_by_arena import get_session_by_arena
 from app.services.user_service import get_user_service
@@ -72,9 +72,9 @@ async def process_groups(db_groups, db: AsyncSession) -> List[ArenaListGroupClie
             managers=[]
         )
         managers = await get_manager_by_group(db_group.id, db)
-        emails = await get_manager_email_by_group(db_group.id, db)
-        if len(emails) != 0:
-            users = await get_user_service().get_users_by_email(list(emails))
+        ids = await get_manager_id_by_group(db_group.id, db)
+        if len(ids) != 0:
+            users = await get_user_service().get_users_by_id(list(ids))
         else:
             users = {}
 
@@ -113,9 +113,9 @@ async def process_players(db_sessions, db: AsyncSession) -> List[ArenaMembers]:
     players = []
     for session in db_sessions:
         session_players = await get_players_by_session(session.id, db)
-        player_emails = await get_player_email_by_session(session.id, db)
-        if len(player_emails) != 0:
-            users = await get_user_service().get_users_by_email(list(player_emails))
+        player_ids = await get_player_id_by_session(session.id, db)
+        if len(player_ids) != 0:
+            users = await get_user_service().get_users_by_email(list(player_ids))
         else:
             users = {}
 

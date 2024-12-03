@@ -14,8 +14,8 @@ from app.repositories.get_game_by_id import get_game_by_id
 from app.repositories.get_arena_by_id import get_arena_by_id
 from app.repositories.get_groups_by_arena import get_groups_by_arena
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
-from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
+from app.repositories.get_player_id_by_session import get_player_id_by_session
 from app.repositories.get_players_by_session import get_players_by_session
 from app.services.get_session import get_session
 from app.services.user_service import get_user_service
@@ -56,9 +56,9 @@ async def map_session_to_response(db: AsyncSession, session: ArenaSession) -> Se
     arena = await get_arena_by_id(session.arena_id, db)
     project = await get_game_by_id(session.project_id, session.organisation_code, db)
     players = await get_players_by_session(session.id, db)
-    emails = await get_player_email_by_session(session.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_player_id_by_session(session.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = {}
     return SessionResponse(
@@ -120,9 +120,9 @@ async def _map_arena_group(group, db: AsyncSession) -> ArenaGroupResponse:
     Maps ArenaGroup model to ArenaGroupResponse.
     """
     managers = await get_manager_by_group(group.id, db)
-    emails = await get_manager_email_by_group(group.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_manager_id_by_group(group.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = {}
 

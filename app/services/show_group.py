@@ -10,7 +10,7 @@ from app.payloads.response.UserResponse import UserResponse
 from app.repositories.get_arenas_by_group import get_arenas_by_group
 from app.repositories.get_games_by_group import get_games_by_group
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
 from app.services.get_group import get_group
 from app.services.user_service import get_user_service
 
@@ -45,9 +45,9 @@ async def process_group(db: AsyncSession, db_group: Group) -> GroupClientRespons
 
     # Fetch manager details concurrently
     managers = await get_manager_by_group(db_group.id, db)
-    email_managers = await get_manager_email_by_group(db_group.id, db)
-    if len(email_managers) != 0:
-        users = await get_user_service().get_users_by_email(list(email_managers))
+    id_managers = await get_manager_id_by_group(db_group.id, db)
+    if len(id_managers) != 0:
+        users = await get_user_service().get_users_by_id(list(id_managers))
     else:
         users = {}
 

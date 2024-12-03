@@ -8,8 +8,8 @@ from app.repositories.get_arena_by_id import get_arena_by_id
 from app.repositories.get_game_by_id import get_game_by_id
 from app.repositories.get_group_by_arena import get_group_by_arena
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
-from app.repositories.get_player_email_by_session import get_player_email_by_session
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
+from app.repositories.get_player_id_by_session import get_player_id_by_session
 from app.repositories.get_players_by_session import get_players_by_session
 from app.repositories.get_session_by_game import get_session_by_game
 from app.repositories.get_total_groups_by_game import get_total_groups_by_game
@@ -88,8 +88,7 @@ async def _process_session_players(players: Sequence[ArenaSessionPlayers], users
     print("=================================")
     print(users)
     for player in players:
-        user_detail = users.get(player.user_email, None)
-        print(user_detail)
+        user_detail = users.get(player.user_id, None)
         processed_player = GameViewSessionPlayerClientResponse(
             user_id=user_detail.get('user_id') if user_detail else str(player.user_id),
             email=user_detail.get('user_email') if user_detail else player.user_email,
@@ -119,14 +118,12 @@ async def _create_session_response(
         GameViewSessionResponse: Structured session response
     """
     players = await get_players_by_session(session.id, db)
-    emails = await get_player_email_by_session(session.id, db)
-    if len(emails) != 0:
-        users = await get_user_service().get_users_by_email(list(emails))
+    ids = await get_player_id_by_session(session.id, db)
+    if len(ids) != 0:
+        users = await get_user_service().get_users_by_email(list(ids))
     else:
         users = list()
-    print("=========== GameViewSessionResponse ============")
-    print(emails)
-    print(users)
+
     return GameViewSessionResponse(
         id=session.id,
         period_type=session.period_type,
@@ -263,9 +260,9 @@ async def _create_arena_response(
     group = await get_group_by_arena(arena.id, db)
     if group:
         first_group = group
-        manager_emails = await get_manager_email_by_group(first_group.id, db)
-        if len(manager_emails) > 0:
-            users = await get_user_service().get_users_by_email(list(manager_emails))
+        manager_ids = await get_manager_id_by_group(first_group.id, db)
+        if len(manager_ids) > 0:
+            users = await get_user_service().get_users_by_email(list(manager_ids))
         else:
             users = list()
         arena_resp.group = GameViewGroupResponse(

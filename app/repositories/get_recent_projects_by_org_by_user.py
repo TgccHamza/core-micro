@@ -7,14 +7,14 @@ from sqlalchemy.orm import aliased
 from app.models import Project, ArenaSessionPlayers, ArenaSession, GroupProjects, GroupUsers
 
 
-async def get_recent_projects_by_org_by_user(org_id: str, user_email: str, session: AsyncSession) -> Sequence[Project]:
+async def get_recent_projects_by_org_by_user(org_id: str, user_id: str, session: AsyncSession) -> Sequence[Project]:
     """
     Asynchronously fetch recent projects for an organization.
 
     Args:
         session (AsyncSession): The asynchronous database session.
         org_id (str): Organization identifier.
-        user_email (str): user identifier.
+        user_id (str): user identifier.
 
     Returns:
         List: List of recent game responses.
@@ -26,7 +26,7 @@ async def get_recent_projects_by_org_by_user(org_id: str, user_email: str, sessi
         .distinct()
         .join(GroupUsers, GroupProjects.group_id == GroupUsers.group_id)
         .where(
-            GroupUsers.user_email == user_email,
+            GroupUsers.user_id == user_id,
             GroupProjects.project_id == Project.id  # Ensures project is part of group_projects
         )
     )
@@ -37,7 +37,7 @@ async def get_recent_projects_by_org_by_user(org_id: str, user_email: str, sessi
         .distinct()
         .join(ArenaSessionPlayers, ArenaSession.id == ArenaSessionPlayers.session_id)
         .where(
-            ArenaSessionPlayers.user_email == user_email
+            ArenaSessionPlayers.user_id == user_id
             ,
             ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
         )
@@ -47,7 +47,7 @@ async def get_recent_projects_by_org_by_user(org_id: str, user_email: str, sessi
         select(ArenaSession.project_id)
         .distinct()
         .where(
-            ArenaSession.super_game_master_mail == user_email
+            ArenaSession.super_game_master_id == user_id
             ,
             ArenaSession.project_id == Project.id  # Ensures project is part of arena sessions
         )

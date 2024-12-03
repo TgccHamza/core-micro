@@ -148,7 +148,7 @@ async def admin_space(
     try:
         org_id = jwt_claims.get("org_id")
         user_id = jwt_claims.get("uid")
-        user_email = jwt_claims.get("email")
+        #user_email = jwt_claims.get("email")
         role = jwt_claims.get("role")
 
         if not org_id or not user_id:
@@ -160,7 +160,7 @@ async def admin_space(
             # Call the service function to retrieve the admin space data
             admin_space_data = await services_space_admin.space_admin(db=db, user_id=user_id, org_id=org_id)
         else:
-            admin_space_data = await services_space_user.space_user(db=db, user_id=user_id, user_email=user_email,
+            admin_space_data = await services_space_user.space_user(db=db, user_id=user_id,
                                                                     org_id=org_id)
 
         if admin_space_data is None:
@@ -185,12 +185,13 @@ async def game_view(game_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_c
                     db: AsyncSession = Depends(get_db_async)):
     try:
         org_id = jwt_claims.get("org_id")
-        email = jwt_claims.get("email")
+        user_id = jwt_claims.get("user_id")
+        # email = jwt_claims.get("email")
         role = jwt_claims.get("role")
         if role == "admin":
             return await services_game_view.gameView(db=db, org_id=org_id, game_id=game_id)
         else:
-            return await services_game_view_user.gameViewUser(db=db, org_id=org_id, user_email=email, game_id=game_id)
+            return await services_game_view_user.gameViewUser(db=db, org_id=org_id, user_id=user_id, game_id=game_id)
     except Exception as e:
         # Log the error (you can use a proper logging framework in your project)
         logger.error(f"Error in game_view: {str(e)}")

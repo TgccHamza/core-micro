@@ -11,7 +11,7 @@ from app.repositories.get_arenas_by_group import get_arenas_by_group
 from app.repositories.get_games_by_group import get_games_by_group
 from app.repositories.get_groups_by_org import get_groups_by_org
 from app.repositories.get_manager_by_group import get_manager_by_group
-from app.repositories.get_manager_email_by_group import get_manager_email_by_group
+from app.repositories.get_manager_id_by_group import get_manager_id_by_group
 from app.services.user_service import get_user_service
 
 # Set up logging for this module
@@ -39,9 +39,9 @@ async def process_group(db: AsyncSession, db_group: Group) -> GroupListClientRes
 
     # Fetch manager details concurrently
     managers = await get_manager_by_group(db_group.id, db)
-    email_managers = await get_manager_email_by_group(db_group.id, db)
-    if len(email_managers) != 0:
-        users = await get_user_service().get_users_by_email(list(email_managers))
+    id_managers = await get_manager_id_by_group(db_group.id, db)
+    if len(id_managers) != 0:
+        users = await get_user_service().get_users_by_email(list(id_managers))
     else:
         users = {}
 
