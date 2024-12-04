@@ -12,7 +12,7 @@ class Project(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
-    description = Column(Text, index=True)
+    description = Column(Text())
     game_trailer_url = Column(String(255), index=True)
     db_index = Column(String(36), index=True)
     slug = Column(String(255), unique=True, index=True)
@@ -77,7 +77,7 @@ class ProjectModule(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
-    description = Column(Text, index=True)
+    description = Column(Text())
     type = Column(Enum(ModuleType), default=ModuleType.EXTENSION)
     module_for = Column(Enum(ModuleForType), default=ModuleForType.ALL)
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
@@ -98,8 +98,8 @@ class ProjectComment(Base):
     __tablename__ = "project_comments"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id = Column(String(36), nullable=True)
-    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
+    project_id = Column(String(36), nullable=True, index=True)
+    user_id = Column(String(36), nullable=True, index=True)  # ID of the user who made the comment
     comment_text = Column(Text, nullable=True)  # The actual comment
     visible = Column(Boolean, default=True)  # Whether the comment is visible
     created_at = Column(DateTime, nullable=True,
@@ -127,8 +127,8 @@ class CommentLike(Base):
     __tablename__ = "comment_likes"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    comment_id = Column(String(36), nullable=True)
-    user_id = Column(String(36), nullable=True)  # ID of the user who made the comment
+    comment_id = Column(String(36), nullable=True, index=True)
+    user_id = Column(String(36), nullable=True, index=True)  # ID of the user who made the comment
     created_at = Column(DateTime, nullable=True,
                         default=lambda: datetime.now())  # Timestamp for when the comment was created
 
@@ -190,8 +190,8 @@ class GroupUsers(Base):
     __tablename__ = "group_users"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    group_id = Column(String(36))  # No ForeignKey constraint
-    user_id = Column(String(36), nullable=True)  # No ForeignKey constraint
+    group_id = Column(String(36), index=True)  # No ForeignKey constraint
+    user_id = Column(String(36), nullable=True, index=True)  # No ForeignKey constraint
     user_email = Column(String(255), nullable=True)  # No ForeignKey constraint
     first_name = Column(String(150), nullable=True)  # No ForeignKey constraint
     last_name = Column(String(150), nullable=True)  # No ForeignKey constraint
@@ -213,8 +213,8 @@ class GroupProjects(Base):
     __tablename__ = "group_projects"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    group_id = Column(String(36))  # No ForeignKey constraint
-    project_id = Column(String(36))  # No ForeignKey constraint
+    group_id = Column(String(36), index=True)  # No ForeignKey constraint
+    project_id = Column(String(36), index=True)  # No ForeignKey constraint
 
     # Relationships
 
@@ -227,9 +227,9 @@ class GroupArenas(Base):
     __tablename__ = "group_arenas"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    group_id = Column(String(36))  # No ForeignKey constraint
-    arena_id = Column(String(36))  # No ForeignKey constraint
-    user_id = Column(String(36), nullable=True)  # No ForeignKey constraint
+    group_id = Column(String(36), index=True)  # No ForeignKey constraint
+    arena_id = Column(String(36), index=True)  # No ForeignKey constraint
+    user_id = Column(String(36), nullable=True, index=True)  # No ForeignKey constraint
 
     # Relationships
 
@@ -264,8 +264,8 @@ class ArenaSession(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organisation_code = Column(String(36), nullable=True, index=True)
-    arena_id = Column(String(36))  # No ForeignKey constraint
-    project_id = Column(String(36))  # No ForeignKey constraint
+    arena_id = Column(String(36), index=True)  # No ForeignKey constraint
+    project_id = Column(String(36), index=True)  # No ForeignKey constraint
     period_type = Column(Enum(PeriodType), nullable=True)
     start_time = Column(DateTime, nullable=True)
     end_time = Column(DateTime, nullable=True)
@@ -274,7 +274,7 @@ class ArenaSession(Base):
     view_access = Column(Enum(ViewAccess), nullable=True)
     activation_status = Column(Enum(ActivationStatus), default=ActivationStatus.ACTIVE)
     super_game_master_mail = Column(String(36), nullable=True)
-    super_game_master_id = Column(String(36), nullable=True)
+    super_game_master_id = Column(String(36), nullable=True, index=True)
     player_module_id = Column(String(36), nullable=True)
     gamemaster_module_id = Column(String(36), nullable=True)
     super_game_master_module_id = Column(String(36), nullable=True)
@@ -303,7 +303,7 @@ class ArenaSessionTeam(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
-    session_id = Column(String(36))
+    session_id = Column(String(36), index=True)
 
 
 # ArenaSessionPlayers model
@@ -312,9 +312,9 @@ class ArenaSessionPlayers(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organisation_code = Column(String(36), nullable=True, index=True)
-    session_id = Column(String(36))
-    team_id = Column(String(36), nullable=True)
-    user_id = Column(String(36), nullable=True)
+    session_id = Column(String(36), index=True)
+    team_id = Column(String(36), nullable=True, index=True)
+    user_id = Column(String(36), nullable=True, index=True)
     user_email = Column(String(255), nullable=True)
     user_name = Column(String(255), nullable=True)
     email_status = Column(Enum(EmailStatus), default=EmailStatus.PENDING, nullable=True)

@@ -93,20 +93,16 @@ class UserServiceClient:
                     data = response.json()
                     users = data.get("users", [])  # Ensure we handle empty or invalid users gracefully
                     for user in users:
-                        full_name = user.get("name", "").strip()  # Ensure we handle empty or invalid full_name gracefully
-                        if " " in full_name:
-                            first_name, last_name = full_name.split(" ", 1)  # Split only on the first space
-                        else:
-                            first_name = full_name  # If only one name is provided, treat it as the first name
-                            last_name = None  # No last name in this case
+                        first_name = user.get("first_name", "")  # If only one name is provided, treat it as the first name
+                        last_name = user.get("last_name", "")  # No last name in this case
 
                         items[user.get('user_id')] = UserResponse(
                             user_id=user.get("user_id", None),
                             email=user.get("email", None),
                             user_email=user.get("email", None),
                             username=user.get("username", None),
-                            full_name=full_name,
-                            user_name=full_name,  # Still use full_name here
+                            full_name=f"{first_name} {last_name}".strip(),
+                            user_name=f"{first_name} {last_name}".strip(),  # Still use full_name here
                             first_name=first_name,
                             last_name=last_name)
                 return items
