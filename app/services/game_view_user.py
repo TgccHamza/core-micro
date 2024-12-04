@@ -203,7 +203,7 @@ async def _create_session_for_moderator_response(
         users = await get_user_service().get_users_by_id(list(ids))
     else:
         users = list()
-    links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.MODERATOR], db)
+    links = await get_module_by_game_by_type(session.project_id, [ModuleForType.ALL, ModuleForType.MODERATOR, ModuleForType.GAMEMASTER], db)
     return GameViewModeratorSessionResponse(
         id=session.id,
         arena=GameViewModeratorArenaResponse(
