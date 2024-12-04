@@ -12,7 +12,7 @@ class Project(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
-    description = Column(String(255), index=True)
+    description = Column(Text, index=True)
     game_trailer_url = Column(String(255), index=True)
     db_index = Column(String(36), index=True)
     slug = Column(String(255), unique=True, index=True)
@@ -77,7 +77,7 @@ class ProjectModule(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), index=True)
-    description = Column(String(255), index=True)
+    description = Column(Text, index=True)
     type = Column(Enum(ModuleType), default=ModuleType.EXTENSION)
     module_for = Column(Enum(ModuleForType), default=ModuleForType.ALL)
     project_id = Column(String(36), index=True)  # No ForeignKey constraint
