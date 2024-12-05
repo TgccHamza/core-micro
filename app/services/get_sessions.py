@@ -73,6 +73,7 @@ async def map_session_to_response(db: AsyncSession, session: ArenaSession) -> Se
         super_game_master_mail=session.super_game_master_mail,
         super_game_master_id=session.super_game_master_id,
         arena_id=session.arena_id,
+        db_index=session.db_index,
         project_id=session.project_id,
         period_type=session.period_type,
         start_time=session.start_time,
