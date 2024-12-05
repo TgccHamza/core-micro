@@ -69,7 +69,7 @@ class SessionResponse(BaseModel):
     super_game_master_id: Optional[str] = None
     arena_id: Optional[UUID] = None
     project_id: Optional[UUID] = None
-    db_index: Optional[UUID] = None
+    db_index: Optional[str] = None
     period_type: Optional[PeriodType] = None  # You can change this to an Enum if needed
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
