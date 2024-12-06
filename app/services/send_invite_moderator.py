@@ -37,7 +37,7 @@ async def send_invite_moderator(
     Returns:
         None
     """
-    email_service_url = "https://dev-api.thegamechangercompany.io/mailer/api/v1/emails"
+    email_service_url = f"{os.getenv("URL_MAILER")}/api/v1/emails"
 
     if fullname is None:
         fullname = ""

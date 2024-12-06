@@ -1,12 +1,22 @@
 import mimetypes
 import os
 import sys
+from http.client import HTTPResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, Response
 
 from app.payloads.request.webhook_invitation_progress_request import WebhookInvitationProgressRequest
+from app.payloads.response.GameSessionPlayerResponse import GameSessionPlayerResponse
+from app.repositories.get_player_by_session_by_id_only import get_player_by_session_by_id_only
+from app.repositories.get_players_by_session import get_players_by_session
+from app.repositories.get_players_by_session_db_index_only import get_players_by_session_db_index_only
+from app.repositories.get_session_by_id import get_session_by_id
+from app.repositories.get_session_by_id_only import get_session_by_id_only
+from app.services.game_view_user import _process_session_players_for_moderator
+from app.services.get_com_session_players_service import get_com_session_players_service
 from app.services.progress_invitation_service import progress_invitation_service
+from app.services.user_service import get_user_service
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -102,6 +112,7 @@ async def run_migrations():
             content={"message": f"Migration failed: {e}"}
         )
 
+
 @app.post("/server/generate-migration")
 async def generate_migrations():
     """Endpoint to run Alembic migrations."""
@@ -124,7 +135,43 @@ async def generate_migrations():
         )
 
 
+@app.get("/com/check/session/{session_id}")
+async def check_session(session_id: str, db: AsyncSession = Depends(get_db_async)):
+    """Check if a session exists."""
+    try:
+        session = await get_session_by_id_only(session_id, db)
+        if session:
+            return Response(status_code=status.HTTP_200_OK)
+        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking session: {e}"
+        )
 
+@app.get("/com/check/game/{db_index}/{player_id}")
+async def check_player(db_index: str, player_id: str, db: AsyncSession = Depends(get_db_async)):
+    """Check if a session exists."""
+    try:
+        player = await get_player_by_session_by_id_only(db_index, player_id, db)
+        if player:
+            return Response(status_code=status.HTTP_200_OK)
+        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking session: {e}"
+        )
+
+@app.get("/com/game/{db_index}/players", response_model=list[GameSessionPlayerResponse])
+async def get_players(db_index: str, db: AsyncSession = Depends(get_db_async)):
+    try:
+        return await get_com_session_players_service(db_index, db)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking session: {e}"
+        )
 
 @app.post("/webhook/invitation/progress")
 async def progress_invitation(data: WebhookInvitationProgressRequest, db: AsyncSession = Depends(get_db_async)):

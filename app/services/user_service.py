@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import httpx
@@ -10,7 +11,7 @@ from app.payloads.response.UserResponse import UserResponse
 
 class UserServiceClient:
     def __init__(self):
-        self.base_url = 'https://dev-api.thegamechangercompany.io/client-auth/api/v1'
+        self.base_url = f'{os.getenv("CLIENTAUTH_API")}/api/v1'
 
     async def get_user_by_email(self, email: str) -> UserResponse | None:
         url = f"{self.base_url}/users/email/{email}"

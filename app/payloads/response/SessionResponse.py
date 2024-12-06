@@ -6,25 +6,21 @@ from typing import Optional, List
 
 from app.enums import PeriodType, AccessStatus, SessionStatus, ViewAccess, ActivationStatus, EmailStatus
 
-
 class ArenaGroupUserResponse(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
-
 class ArenaGroupResponse(BaseModel):
     id: str
     name: str
     managers: List[ArenaGroupUserResponse]
 
-
 class ArenaResponse(BaseModel):
     id: str
     name: str
     groups: List[ArenaGroupResponse]
-
 
 class ModuleResponse(BaseModel):
     id: str
@@ -32,7 +28,6 @@ class ModuleResponse(BaseModel):
     type: str
     project_id: str
     order: Optional[int] = 0
-
 
 class ProjectResponse(BaseModel):
     id: str
@@ -47,7 +42,6 @@ class ProjectResponse(BaseModel):
     start_time: Optional[datetime]
     end_time: Optional[datetime]
 
-
 class SessionPlayerClientResponse(BaseModel):
     id: Optional[str]
     user_id: Optional[str]
@@ -56,12 +50,10 @@ class SessionPlayerClientResponse(BaseModel):
     email_status: Optional[EmailStatus]
     is_game_master: Optional[bool] = False
 
-
 class UserSession(BaseModel):
     user_id: Optional[str]
     user_email: Optional[str]
     user_fullname: Optional[str]
-
 
 class SessionResponse(BaseModel):
     id: Optional[UUID]

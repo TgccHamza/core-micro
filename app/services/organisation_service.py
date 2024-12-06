@@ -1,3 +1,5 @@
+import os
+
 import httpx
 from fastapi import HTTPException
 
@@ -7,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class OrganisationServiceClient:
     def __init__(self):
-        self.base_url = 'https://dev-api.thegamechangercompany.io/client-auth/api/v1'
+        self.base_url = f'{os.getenv("CLIENTAUTH_API")}/api/v1'
 
     async def get_organisation_name(self, organisation_code: str) -> str:
         url = f"{self.base_url}/organisations/{organisation_code}"

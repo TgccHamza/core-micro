@@ -1,3 +1,5 @@
+import os
+
 import httpx
 import logging
 
@@ -6,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class GameDBServiceClient:
     def __init__(self):
-        self.base_url = 'https://dev-api.thegamechangercompany.io/api'
+        self.base_url = f'{os.getenv("URL_MONGODB")}'
 
     async def create_game(self) -> str | None:
         url = f"{self.base_url}/create-game"
