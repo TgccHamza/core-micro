@@ -39,7 +39,7 @@ async def send_invite_manager(
     if fullname is None:
         fullname = ""
 
-    email_api_url = f"{os.getenv("URL_MAILER")}/api/v1/emails"
+    email_api_url = f"{os.getenv('URL_MAILER')}/api/v1/emails"
     # Get the path to the template file
     template_path = os.path.join('/app/app', "mails", "template_invite_manager.html")
 

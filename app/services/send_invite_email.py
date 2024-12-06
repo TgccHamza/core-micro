@@ -37,7 +37,7 @@ async def send_invite_email(
     Returns:
         None
     """
-    email_service_url = f"{os.getenv("URL_MAILER")}/api/v1/emails"
+    email_service_url = f"{os.getenv('URL_MAILER')}/api/v1/emails"
 
     if fullname is None:
         fullname = ""
