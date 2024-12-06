@@ -28,13 +28,14 @@ async def get_com_session_players_service(db_index: str, db: AsyncSession) -> li
             items.append(
                 GameSessionPlayerResponse(
                     user_id=player.user_id,
-                    email=user.email if user else None,
-                    first_name=user.first_name if user else None,
-                    last_name=user.last_name if user else None,
-                    picture=user.picture if user else None,
-                    is_game_master=user.is_game_master if user else False,
+                    role=f"{ 'game_master' if player.is_game_master else 'player'}",
+                    email=user.get('email') if user else None,
+                    first_name=user.get('first_name') if user else None,
+                    last_name=user.get('last_name') if user else None,
+                    picture=user.get('picture') if user else None,
+                    is_game_master=player.is_game_master,
                     is_moderator=False,
-                    is_player=not user.is_game_master if user else False,
+                    is_player=not player.is_game_master,
                 )
             )
         if session and session.super_game_master_id:
@@ -42,13 +43,14 @@ async def get_com_session_players_service(db_index: str, db: AsyncSession) -> li
             items.append(
                 GameSessionPlayerResponse(
                     user_id=session.super_game_master_id,
-                    email=user.email if user else None,
-                    first_name=user.first_name if user else None,
-                    last_name=user.last_name if user else None,
-                    picture=user.picture if user else None,
-                    is_game_master=user.is_game_master if user else False,
-                    is_moderator=False,
-                    is_player=not user.is_game_master if user else False,
+                    role=f"moderator",
+                    email=user.get('email') if user else None,
+                    first_name=user.get('first_name') if user else None,
+                    last_name=user.get('last_name') if user else None,
+                    picture=user.get('picture') if user else None,
+                    is_game_master=False,
+                    is_moderator=True,
+                    is_player=False,
                 )
             )
 
