@@ -527,7 +527,7 @@ async def delete_session(session_id: str, db: AsyncSession = Depends(get_db_asyn
 
 
 @router.post("/sessions/player/{session_player_id}/remove")
-def remove_player(session_player_id: str, db: AsyncSession = Depends(get_db_async),
+async def remove_player(session_player_id: str, db: AsyncSession = Depends(get_db_async),
                   jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims)):
     """
     Removes a player from the specified session.
@@ -537,7 +537,7 @@ def remove_player(session_player_id: str, db: AsyncSession = Depends(get_db_asyn
 
     try:
         # Delegate session validation and removal to the service layer
-        services_remove_player_from_session.remove_player_from_session(db, session_player_id, org_id)
+        await services_remove_player_from_session.remove_player_from_session(db, session_player_id, org_id)
         return {"message": "Player removed from session successfully."}
 
     except PlayerNotFoundError:
