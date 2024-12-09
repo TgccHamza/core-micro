@@ -58,6 +58,7 @@ async def send_invite_manager(
         "is_html": True,
         "subject": f"{organisation_name} - Invitation to manage {group_name}",
         "to": email,
+        "from": 'GAMITOOL'
     }
 
     try:

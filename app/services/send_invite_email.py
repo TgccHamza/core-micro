@@ -64,6 +64,7 @@ async def send_invite_email(
         "is_html": True,
         "subject": f"{organisation_name} - Invitation to play {game_name}",
         "to": email,
+        "from": 'GAMITOOL'
     }
 
     try:
