@@ -125,6 +125,7 @@ async def _create_session_response(
     return GameViewSessionResponse(
         id=session.id,
         period_type=session.period_type,
+        db_index=session.db_index,
         start_time=session.start_time,
         end_time=session.end_time,
         access_status=session.access_status,
