@@ -17,7 +17,7 @@ class GameViewSessionResponse(BaseModel):
     period_type: Optional[PeriodType]  # You can change this to an Enum if needed
     start_time: Optional[datetime]
     end_time: Optional[datetime]
-    db_index: Optional[str]
+    db_index: Optional[str] = None
     access_status: AccessStatus  # You can change this to an Enum if needed
     session_status: SessionStatus  # You can change this to an Enum if needed
     view_access: ViewAccess
