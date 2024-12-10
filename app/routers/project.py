@@ -211,13 +211,13 @@ async def favorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends
 
 
 @client_router.delete("/projects/{project_id}/favorite")
-def unfavorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
+async def unfavorite_project(project_id: str, jwt_claims: Dict[Any, Any] = Depends(get_jwt_claims),
                        db: AsyncSession = Depends(get_db_async)):
     """Endpoint to remove a project from favorites."""
 
     user_id = jwt_claims.get("uid")
 
-    return services_unfavorite_project.unfavorite_project(db=db, user_id=user_id, project_id=project_id)
+    return await services_unfavorite_project.unfavorite_project(db=db, user_id=user_id, project_id=project_id)
 
 
 @client_router.get("/users/{user_id}/favorites", response_model=list[ProjectClientWebResponse])
