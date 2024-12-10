@@ -32,7 +32,7 @@ spec:
           name: grpc
         resources:
           requests:
-            cpu: "2é0m"
+            cpu: "220m"
             memory: "128Mi"
           limits:
             cpu: "300m"
