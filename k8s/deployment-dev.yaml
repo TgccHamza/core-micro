@@ -32,7 +32,7 @@ spec:
           name: grpc
         resources:
           requests:
-            cpu: "200m"
+            cpu: "2é0m"
             memory: "128Mi"
           limits:
             cpu: "300m"
@@ -100,13 +100,13 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 90
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 90
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
