@@ -6,7 +6,6 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 from app.models import ProjectFavorite
-from app.repositories.check_user_has_favorite_project import check_user_has_favorite_project
 
 from app.repositories.get_favorite_project import get_favorite_project
 
