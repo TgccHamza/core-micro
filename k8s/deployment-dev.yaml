@@ -32,10 +32,10 @@ spec:
           name: grpc
         resources:
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: "220m"
+            memory: "180Mi"
           limits:
-            cpu: "200m"
+            cpu: "300m"
             memory: "512Mi"
         livenessProbe:
           httpGet:
@@ -100,13 +100,13 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 90
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 90
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
