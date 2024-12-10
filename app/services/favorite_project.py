@@ -6,9 +6,11 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 from app.models import ProjectFavorite
+from app.repositories.check_user_has_favorite_project import check_user_has_favorite_project
+
+from app.repositories.get_favorite_project import get_favorite_project
 
 logger = logging.getLogger(__name__)
-
 
 async def favorite_project(
         db: AsyncSession,
@@ -38,10 +40,7 @@ async def favorite_project(
             raise ValueError("User ID and Project ID must be provided")
 
         # Check if the project is already favorited
-        existing_favorite = db.query(ProjectFavorite).filter_by(
-            user_id=user_id,
-            project_id=project_id
-        ).first()
+        existing_favorite = await get_favorite_project(user_id=user_id, project_id=project_id, session=db)
 
         # Handle duplicate favorites based on flag
         if existing_favorite:
@@ -61,10 +60,10 @@ async def favorite_project(
 
         # Add and commit in a transactional manner
         db.add(favorite)
-        db.commit()
+        await db.commit()
 
         # Refresh to get any database-generated attributes
-        db.refresh(favorite)
+        await db.refresh(favorite)
 
         # Log successful favorite addition
         logger.info(f"Project {project_id} favorited by user {user_id}")
@@ -78,7 +77,7 @@ async def favorite_project(
 
     except SQLAlchemyError as sa_err:
         # Rollback the transaction on database errors
-        db.rollback()
+        await db.rollback()
         logger.error(f"Database error when favoriting project: {sa_err}")
         raise HTTPException(
             status_code=500,
@@ -87,7 +86,7 @@ async def favorite_project(
 
     except Exception as e:
         # Catch-all for unexpected errors
-        db.rollback()
+        await db.rollback()
         logger.error(f"Unexpected error in favorite_project: {e}")
         raise HTTPException(
             status_code=500,

@@ -1,13 +1,14 @@
-from typing import Dict, Any
-from sqlalchemy.orm import Session
+from typing import Dict
+
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ProjectFavorite
+from app.repositories.get_favorite_project import get_favorite_project
 
 
-def unfavorite_project(
-        db: Session,
+async def unfavorite_project(
+        db: AsyncSession,
         user_id: str,
         project_id: str
 ) -> Dict[str, str]:
@@ -28,25 +29,24 @@ def unfavorite_project(
     """
     try:
         # Attempt to find and delete the favorite in a single query
-        rows_affected = db.query(ProjectFavorite) \
-            .filter_by(user_id=user_id, project_id=project_id) \
-            .delete(synchronize_session=False)
+        favorite = await get_favorite_project(user_id=user_id, project_id=project_id, session=db)
 
-        # Check if any rows were actually deleted
-        if rows_affected == 0:
+        if not favorite:
             raise HTTPException(
                 status_code=404,
                 detail=f"No favorite found for user {user_id} and project {project_id}"
             )
 
+        await db.delete(favorite)
+
         # Commit the transaction
-        db.commit()
+        await db.commit()
 
         return {"message": "Project successfully removed from favorites"}
 
     except SQLAlchemyError as e:
         # Rollback the transaction in case of any database error
-        db.rollback()
+        await db.rollback()
 
         # Log the error (in a real-world scenario, use proper logging)
         print(f"Database error during unfavorite: {str(e)}")
@@ -57,7 +57,7 @@ def unfavorite_project(
         )
     except Exception as e:
         # Catch any unexpected errors
-        db.rollback()
+        await db.rollback()
 
         # Log the unexpected error
         print(f"Unexpected error during unfavorite: {str(e)}")
