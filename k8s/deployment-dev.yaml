@@ -32,10 +32,10 @@ spec:
           name: grpc
         resources:
           requests:
-            cpu: "100m"
+            cpu: "200m"
             memory: "128Mi"
           limits:
-            cpu: "200m"
+            cpu: "300m"
             memory: "512Mi"
         livenessProbe:
           httpGet:
