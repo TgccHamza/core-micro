@@ -93,7 +93,7 @@ spec:
     kind: Deployment
     name: $(imageName)
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 2
   metrics:
   - type: Resource
     resource:
