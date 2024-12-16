@@ -165,13 +165,7 @@ async def check_player(db_index: str, player_id: str, db: AsyncSession = Depends
 
 @app.get("/com/game/{db_index}/players", response_model=list[GameSessionPlayerResponse])
 async def get_players(db_index: str, db: AsyncSession = Depends(get_db_async)):
-    try:
-        return await get_com_session_players_service(db_index, db)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error checking session: {e}"
-        )
+    return await get_com_session_players_service(db_index, db)
 
 @app.post("/webhook/invitation/progress")
 async def progress_invitation(data: WebhookInvitationProgressRequest, db: AsyncSession = Depends(get_db_async)):
