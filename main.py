@@ -165,6 +165,7 @@ async def check_player(db_index: str, player_id: str, db: AsyncSession = Depends
 
 @app.get("/com/game/{db_index}/players", response_model=list[GameSessionPlayerResponse])
 async def get_players(db_index: str, db: AsyncSession = Depends(get_db_async)):
+
     return await get_com_session_players_service(db_index, db)
 
 @app.post("/webhook/invitation/progress")
