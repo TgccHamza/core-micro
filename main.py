@@ -1,6 +1,7 @@
 import mimetypes
 import os
 import sys
+import traceback
 from http.client import HTTPResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -149,6 +150,7 @@ async def check_session(session_id: str, db: AsyncSession = Depends(get_db_async
             detail=f"Error checking session: {e}"
         )
 
+
 @app.get("/com/check/game/{db_index}/{player_id}")
 async def check_player(db_index: str, player_id: str, db: AsyncSession = Depends(get_db_async)):
     """Check if a session exists."""
@@ -163,10 +165,21 @@ async def check_player(db_index: str, player_id: str, db: AsyncSession = Depends
             detail=f"Error checking session: {e}"
         )
 
+
 @app.get("/com/game/{db_index}/players", response_model=list[GameSessionPlayerResponse])
 async def get_players(db_index: str, db: AsyncSession = Depends(get_db_async)):
+    try:
+        return await get_com_session_players_service(db_index, db)
+    except Exception as exc:
+        tb_str = traceback.format_exc()  # Capture the traceback
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": str(exc),
+                "traceback": tb_str
+            },
+        )
 
-    return await get_com_session_players_service(db_index, db)
 
 @app.post("/webhook/invitation/progress")
 async def progress_invitation(data: WebhookInvitationProgressRequest, db: AsyncSession = Depends(get_db_async)):
