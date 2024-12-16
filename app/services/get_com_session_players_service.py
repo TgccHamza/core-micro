@@ -24,7 +24,7 @@ async def get_com_session_players_service(db_index: str, db: AsyncSession) -> li
         items = []
         # Transforming players and users into response objects
         for player in players:
-            user = users[player.user_id]
+            user = users.get(player.user_id, None)
             items.append(
                 GameSessionPlayerResponse(
                     user_id=player.user_id,
@@ -39,7 +39,7 @@ async def get_com_session_players_service(db_index: str, db: AsyncSession) -> li
                 )
             )
         if session and session.super_game_master_id:
-            user = users[session.super_game_master_id]
+            user = users.get(session.super_game_master_id, None)
             items.append(
                 GameSessionPlayerResponse(
                     user_id=session.super_game_master_id,

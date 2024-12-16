@@ -72,7 +72,7 @@ async def assign_moderator(db: AsyncSession, session_id: str, org_id: str, email
         if len(users) == 0:
             user = None
         else:
-            user = users[email]
+            user = users.get(email, None)
 
         session.super_game_master_mail = email
 
