@@ -19,11 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 async def show_group(db: AsyncSession, group_id: str, org_id: str):
-    try:
-        group = await get_group(db, group_id, org_id)
-        return await process_group(db, group)
-    except Exception as e:
-        raise e
+    group = await get_group(db, group_id, org_id)
+    return await process_group(db, group)
 
 
 # # Helper function to get sessions for an arena

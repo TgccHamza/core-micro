@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
+from app.exceptions.critical_backend_error_exception import CriticalBackendErrorException
 from app.payloads.request.GroupCreateRequest import GroupCreateRequest
+from app.payloads.response.GroupCreateClientResponse import GroupCreateClientResponse
 from app.services.invite_managers import invite_managers
 
 
@@ -15,10 +17,13 @@ async def create_group(db: AsyncSession, group_request: GroupCreateRequest, org_
         db_group = await _create_group(db, group_request.name, org_id)
         await _associate_projects_with_group(db, db_group.id, group_request.project_ids)
         await invite_managers(db, db_group, group_request.managers, background_tasks)
-        return db_group
+        return GroupCreateClientResponse(
+            id=db_group.id,
+            name=db_group.name
+        )
     except Exception as e:
         await db.rollback()  # Ensure to rollback in case of any error during the transaction
-        raise RuntimeError(f"Error creating group: {str(e)}") from e
+        raise CriticalBackendErrorException(f"Error creating group: {str(e)}") from e
 
 
 async def _create_group(db: AsyncSession, group_name: str, org_id: str) -> models.Group:
