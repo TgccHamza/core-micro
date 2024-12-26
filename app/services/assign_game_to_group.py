@@ -2,7 +2,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
 from uuid import UUID
+
+from app.exceptions.conflict_error_exception import ConflictErrorException
+from app.exceptions.not_found_exception import NotFoundException
 from app.models import Group, GroupProjects
+from app.payloads.response.AssignGameToGroupResponse import AssignGameToGroupResponse
 
 
 async def assign_game_to_group(group_id: str, game_id: str, organisation_id: str, db: AsyncSession):
@@ -15,9 +19,8 @@ async def assign_game_to_group(group_id: str, game_id: str, organisation_id: str
     )
     group = group.scalar_one_or_none()
     if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Group with ID {group_id} not found or does not belong to the organization"
+        raise NotFoundException(
+            error=f"Group with ID {group_id} not found or does not belong to the organization"
         )
 
     # Check if the association already exists
@@ -25,17 +28,17 @@ async def assign_game_to_group(group_id: str, game_id: str, organisation_id: str
         select(GroupProjects).where(GroupProjects.group_id == str(group_id), GroupProjects.project_id == str(game_id))
     )
     if existing_association.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Game with ID {game_id} is already associated with Group {group_id}"
+        raise ConflictErrorException(
+            error=f"Game with ID {game_id} is already associated with Group {group_id}"
         )
 
     # Create the association
     group_project = GroupProjects(group_id=str(group_id), project_id=str(game_id))
     db.add(group_project)
     await db.commit()
-    return {
-        "message": "Game successfully assigned to the group",
-        "group_id": str(group_id),
-        "game_id": str(game_id),
-    }
+
+    return AssignGameToGroupResponse(
+        group_id=str(group_id),
+        game_id=str(game_id),
+        message=f"Game with ID {game_id} has been successfully associated with Group {group_id}"
+    )

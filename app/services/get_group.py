@@ -18,12 +18,10 @@ async def get_group(db: AsyncSession, group_id: str, org_id: str):
 
     # Log if the group was not found
     if not db_group:
-        logger.warning(f"Group with ID {group_id} and organization code {org_id} not found.")
         raise NotFoundException(f"Group with ID {group_id} and organization code {org_id} not found.")
 
     # Log if the group was not found
     if db_group.organisation_code != org_id:
-        logger.warning(f"Group with ID {group_id} and organization code {org_id} not found.")
         raise NotFoundException(f"Group with ID {group_id} and organization code {org_id} not found.")
 
     return db_group

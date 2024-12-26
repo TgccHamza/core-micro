@@ -1,8 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.exceptions.conflict_error_exception import ConflictErrorException
+from app.exceptions.not_found_exception import NotFoundException
 from app.models import Group, GroupUsers
 from fastapi import HTTPException, status
+
+from app.payloads.response.AssignManagerToGroupByEmailResponse import AssignManagerToGroupByEmailResponse
 
 
 async def assign_manager_to_group_by_email(
@@ -14,9 +18,8 @@ async def assign_manager_to_group_by_email(
         group = group_query.scalars().first()
 
         if not group:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Group not found or does not belong to your organization"
+            raise NotFoundException(
+                error="Group not found or does not belong to your organization"
             )
 
         # Check if manager already exists
@@ -26,9 +29,8 @@ async def assign_manager_to_group_by_email(
         manager = manager_query.scalars().first()
 
         if manager:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Manager is already assigned to this group"
+            raise ConflictErrorException(
+                error="Manager is already assigned to this group"
             )
 
         # Assign manager
@@ -39,8 +41,8 @@ async def assign_manager_to_group_by_email(
         db.add(new_manager)
         await db.commit()
 
-        return {
-            "message": "Manager successfully assigned to the group",
-            "group_id": str(group_id),
-            "manager_email": str(manager_email),
-        }
+        return AssignManagerToGroupByEmailResponse(
+            group_id=str(group_id),
+            manager_email=manager_email,
+            message="Manager assigned to group successfully"
+        )

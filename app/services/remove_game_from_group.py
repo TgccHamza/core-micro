@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException, status
-from uuid import UUID
+
+from app.exceptions.not_found_exception import NotFoundException
 from app.models import Group, GroupProjects
+from app.payloads.response.RemoveGameFromGroupResponse import RemoveGameFromGroupResponse
 
 
 async def remove_game_from_group(group_id: str, game_id: str, organisation_id: str, db: AsyncSession):
@@ -15,9 +16,8 @@ async def remove_game_from_group(group_id: str, game_id: str, organisation_id: s
     )
     group = group.scalar_one_or_none()
     if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Group with ID {group_id} not found or does not belong to the organization"
+        raise NotFoundException(
+            error=f"Group with ID {group_id} not found or does not belong to the organization"
         )
 
     # Validate the association exists
@@ -26,16 +26,16 @@ async def remove_game_from_group(group_id: str, game_id: str, organisation_id: s
     )
     group_project = group_project.scalar_one_or_none()
     if not group_project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Game with ID {game_id} is not associated with Group {group_id}"
+        raise NotFoundException(
+            error=f"Game with ID {game_id} is not associated with Group {group_id}"
         )
 
     # Remove the association
     await db.delete(group_project)
     await db.commit()
-    return {
-        "message": "Game successfully removed from the group",
-        "group_id": str(group_id),
-        "game_id": str(game_id),
-    }
+    # make unique response class for payload not dict
+    return RemoveGameFromGroupResponse(
+        group_id=str(group_id),
+        game_id=str(game_id),
+        message="Game successfully removed from the group"
+    )
