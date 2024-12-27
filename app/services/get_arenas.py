@@ -2,6 +2,7 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exceptions.not_found_exception import NotFoundException
 from app.models import Arena
 from sqlalchemy.exc import NoResultFound
 
@@ -19,20 +20,22 @@ from app.services.user_service import get_user_service
 
 async def get_arenas(db: AsyncSession, org_id: str) -> List[ArenaListResponseTop]:
     """
-    Retrieve a list of arenas for a specific organization.
-
+    Fetches arenas for a given organization.
+    This asynchronous function retrieves a list of arenas associated with the specified organization ID.
+    It fetches the arenas from the database, processes their groups and players, and returns the list of arenas.
     Args:
-        db (AsyncSession): Database AsyncSession.
-        org_id (str): Organization ID.
-
+        db (AsyncSession): The asynchronous database session.
+        org_id (str): The ID of the organization for which to fetch arenas.
     Returns:
-        List[ArenaListResponseTop]: List of arenas with associated groups and players.
+        List[ArenaListResponseTop]: A list of arenas with their associated groups and players.
+    Raises:
+        NotFoundException: If no arenas are found for the given organization ID.
     """
     # Fetch arenas for the given organization
 
     arenas_data = await get_arenas_by_org(org_id, db)
     if not arenas_data:
-        raise NoResultFound(f"No arenas found for organization {org_id}")
+        raise NotFoundException(f"No arenas found for organization {org_id}")
 
     arenas = []
     for db_arena in arenas_data:

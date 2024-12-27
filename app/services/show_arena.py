@@ -1,41 +1,22 @@
-from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List, Set, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Arena
+from app.payloads.response.UserResponse import UserResponse
 from app.payloads.response.ArenaListResponseTop import (
     ArenaListResponseTop,
     ArenaListGroupClientResponse,
     ArenaListGroupUserClientResponse,
     ArenaMembers,
 )
+from app.repositories.get_manager_by_group import get_manager_by_group
+from app.repositories.get_manager_id_by_arena import get_manager_ids_by_arena
 from app.services.get_arena import get_arena
 from app.services.user_service import get_user_service
+from app.repositories.get_group_by_arena import get_group_by_arena
 
 
-async def fetch_user_details(user_id: Optional[str], user_email: Optional[str]):
-    """
-    Fetch user details by ID or email using the UserServiceClient.
-
-    Args:
-        user_id (Optional[str]): The user's ID.
-        user_email (Optional[str]): The user's email.
-
-    Returns:
-        dict: The user details, or None if no match is found.
-    """
-    user_service = get_user_service()
-    user_details = None
-
-    if user_id and user_id != "None":
-        user_details = await user_service.get_user_by_id(user_id)
-
-    if not user_details and user_email and user_email != "None":
-        user_details = await user_service.get_user_by_email(user_email)
-
-    return user_details
-
-
-async def map_group_managers(db_group) -> List[ArenaListGroupUserClientResponse]:
+async def map_group_managers(db_group, db: AsyncSession, users: dict[str, UserResponse]) -> List[ArenaListGroupUserClientResponse]:
     """
     Map managers within a group to their client response.
 
@@ -46,8 +27,9 @@ async def map_group_managers(db_group) -> List[ArenaListGroupUserClientResponse]
         List[ArenaListGroupUserClientResponse]: A list of managers for the group.
     """
     managers = []
-    for manager in db_group.managers:
-        user_details = await fetch_user_details(manager.user_id, manager.user_email)
+    group_managers = await get_manager_by_group(db_group.id, db)
+    for manager in group_managers:
+        user_details = users.get(manager.user_id, None)
         if user_details:
             managers.append(ArenaListGroupUserClientResponse(
                 **user_details,
@@ -63,7 +45,7 @@ async def map_group_managers(db_group) -> List[ArenaListGroupUserClientResponse]
     return managers
 
 
-async def map_arena_groups(db_arena) -> List[ArenaListGroupClientResponse]:
+async def map_arena_groups(db_arena, db: AsyncSession) -> List[ArenaListGroupClientResponse]:
     """
     Map the groups associated with an arena.
 
@@ -74,8 +56,10 @@ async def map_arena_groups(db_arena) -> List[ArenaListGroupClientResponse]:
         List[ArenaListGroupClientResponse]: A list of groups for the arena.
     """
     groups = []
-    for db_group in db_arena.groups:
-        managers = await map_group_managers(db_group)
+    arena_groups = await get_group_by_arena(db_arena.id, db)
+
+    for db_group in arena_groups:
+        managers = await map_group_managers(db_group, db, users)
         groups.append(ArenaListGroupClientResponse(
             id=db_group.id,
             name=db_group.name,
@@ -117,7 +101,7 @@ async def map_arena_players(db_arena) -> List[ArenaMembers]:
     return players
 
 
-async def show_arena(db: Session, arena_id: UUID, org_id: str) -> ArenaListResponseTop:
+async def show_arena(db: AsyncSession, arena_id: UUID, org_id: str) -> ArenaListResponseTop:
     """
     Show details of an arena, including its groups and players.
 
@@ -129,9 +113,14 @@ async def show_arena(db: Session, arena_id: UUID, org_id: str) -> ArenaListRespo
     Returns:
         ArenaListResponseTop: The response containing arena details.
     """
-    db_arena = get_arena(db, arena_id, org_id)
-    if not db_arena:
-        raise ValueError(f"Arena with ID {arena_id} not found in organization {org_id}")
+    db_arena = await get_arena(db, arena_id, org_id)
+
+    group_user_ids = await get_manager_ids_by_arena(db, db_arena.id)
+    managers = {}
+    if len(group_user_ids) != 0:
+        managers = await get_user_service().get_users_by_id(group_user_ids)
+
+    
 
     # Prepare the response
     arena_response = ArenaListResponseTop(

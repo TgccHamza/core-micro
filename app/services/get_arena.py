@@ -1,8 +1,10 @@
 import logging
 from uuid import UUID
-from sqlalchemy.orm import Session
 from app.models import Arena
-from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.exceptions.validation_error_exception import ValidationErrorException
+from app.exceptions.not_found_exception import NotFoundException
+from app.repositories.get_arena_by_id_and_org_id import get_arena_by_id_and_org_id
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -10,21 +12,11 @@ logger.setLevel(logging.INFO)
 
 
 def validate_arena_id(arena_id: UUID):
-    """
-    Validates the format of the arena_id.
-
-    Args:
-        arena_id (UUID): The arena ID to validate.
-
-    Raises:
-        HTTPException: If the arena_id is not a valid UUID format.
-    """
     if not isinstance(arena_id, UUID):
-        logger.error(f"Invalid arena ID format: {arena_id}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid arena ID format.")
+        raise ValidationErrorException(error="Invalid arena ID format.")
 
 
-def get_arena(db: Session, arena_id: UUID, org_id: str) -> Arena:
+async def get_arena(db: AsyncSession, arena_id: UUID, org_id: str) -> Arena:
     """
     Fetches a specific Arena by ID and organization ID.
 
@@ -39,20 +31,13 @@ def get_arena(db: Session, arena_id: UUID, org_id: str) -> Arena:
     Raises:
         HTTPException: If the arena is not found.
     """
-    try:
-        # Validate the arena_id format
-        validate_arena_id(arena_id)
+    # Validate the arena_id format
+    validate_arena_id(arena_id)
 
-        # Query the arena from the database
-        arena = db.query(Arena).filter(Arena.id == str(arena_id), Arena.organisation_code == org_id).first()
+    # Query the arena from the database
+    arena = get_arena_by_id_and_org_id(arena_id, org_id, db)
 
-        if not arena:
-            logger.warning(f"Arena with ID {arena_id} not found for organization {org_id}.")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arena not found")
-
-        logger.info(f"Arena with ID {arena_id} retrieved successfully for organization {org_id}.")
-        return arena
-
-    except Exception as e:
-        logger.error(f"Error retrieving arena with ID {arena_id} for organization {org_id}: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error retrieving arena.")
+    if not arena:
+        raise NotFoundException(error=f"Arena with ID {arena_id} not found for organization {org_id}.")
+    
+    return arena

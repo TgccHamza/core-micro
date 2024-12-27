@@ -25,6 +25,6 @@ class ArenaListGroupClientResponse(BaseModel):
 class ArenaListResponseTop(BaseModel):
     id: str
     name: str
-    groups: List[ArenaListGroupClientResponse] = []
+    group: Optional[ArenaListGroupClientResponse]
     players: List[ArenaMembers] = []
 

@@ -7,6 +7,7 @@ from app.models import Group, GroupUsers
 from fastapi import HTTPException, status
 
 from app.payloads.response.AssignManagerToGroupByEmailResponse import AssignManagerToGroupByEmailResponse
+from app.services.user_service import UserServiceClient
 
 
 async def assign_manager_to_group_by_email(
@@ -32,11 +33,18 @@ async def assign_manager_to_group_by_email(
             raise ConflictErrorException(
                 error="Manager is already assigned to this group"
             )
+        
+        # Check if the manager email exists in the user service
+        user_service_response = await UserServiceClient.get_user_by_email(manager_email)
+        user_id = None
+        if user_service_response:
+            user_id = user_service_response.get("user_id", None)
 
         # Assign manager
         new_manager = GroupUsers(
             group_id=str(group_id),
-            user_email=manager_email
+            user_email=manager_email,
+            user_id=user_id
         )
         db.add(new_manager)
         await db.commit()

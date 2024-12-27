@@ -19,7 +19,7 @@ class UserServiceClient:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
-                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                if response.status_code >= 200 or response.status_code <= 299:
                     data = response.json()
                     full_name = data.get("name",
                                          "").strip()  # Ensure we handle empty or invalid full_name gracefully
@@ -54,7 +54,7 @@ class UserServiceClient:
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, json={'email': emails})
                 response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
-                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                if response.status_code >= 200 or response.status_code <= 299:
                     data = response.json()
                     users = data.get("users", [])  # Ensure we handle empty or invalid users gracefully
                     for user in users:
@@ -90,7 +90,7 @@ class UserServiceClient:
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, json={'user_id': ids})
                 response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
-                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                if response.status_code >= 200 or response.status_code <= 299:
                     data = response.json()
                     users = data.get("users", [])  # Ensure we handle empty or invalid users gracefully
                     for user in users:
@@ -120,7 +120,7 @@ class UserServiceClient:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url)
                 response.raise_for_status()  # Raise HTTP exceptions for 4xx/5xx responses
-                if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:
+                if response.status_code >= 200 or response.status_code <= 299:
                     data = response.json()
 
                     full_name = data.get("name",

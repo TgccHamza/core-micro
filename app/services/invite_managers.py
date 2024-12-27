@@ -1,4 +1,5 @@
 from typing import List, Optional, Sequence
+from app.services.get_group import get_group
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Group, GroupUsers  # Assuming these are your models
@@ -12,7 +13,8 @@ from app.services.user_service import get_user_service  # Assuming these are you
 
 async def invite_managers(
         db: AsyncSession,
-        group: Group,
+        group_id: str, 
+        org_id: str,
         managers: List[GroupManager],
         background_tasks: BackgroundTasks
 ):
@@ -30,6 +32,7 @@ async def invite_managers(
         dict: A message indicating the status of email invitations.
     """
 
+    group = await get_group(db, group_id, org_id)   # Fetch group
     # Prepare group and organisation details
     game_name = group.name
     organisation_name = await get_organisation_service().get_organisation_name(group.organisation_code)

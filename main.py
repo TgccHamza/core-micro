@@ -24,6 +24,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, Depends, status, HTTPException
 from app.routers import project
 from app.routers import arena
+from app.routers import group
+from app.routers import session
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
@@ -221,6 +223,8 @@ async def health_game(db: AsyncSession = Depends(get_db_async)):
 app.include_router(project.client_router, tags=["Client Apis"])
 app.include_router(project.admin_router, tags=["Orchestrator Apis"])
 app.include_router(arena.router, tags=["Orchestrator Apis", "Client Apis"])
+app.include_router(group.router, tags=["Orchestrator Apis", "Client Apis"])
+app.include_router(session.router, tags=["Orchestrator Apis", "Client Apis"])
 
 
 @app.get("/openapi-client.json", include_in_schema=False)
@@ -263,56 +267,6 @@ def custom_openapi(schema_tag):
         openapi_schema["paths"][f"{segment_micro}{path}"] = openapi_schema["paths"].pop(path)
 
     return openapi_schema
-
-
-# from pathlib import Path
-# import stat
-# from pydantic import BaseModel
-
-# # Pydantic model for the request body
-# class DirectoryRequest(BaseModel):
-#     directory_path: str
-#
-# # Function to get the file or directory permissions in a readable format
-# def get_permissions(path: str) -> dict[str, bool]:
-#     file_stat = os.stat(path)
-#     permissions = {
-#         'read': bool(file_stat.st_mode & stat.S_IRUSR),
-#         'write': bool(file_stat.st_mode & stat.S_IWUSR),
-#         'execute': bool(file_stat.st_mode & stat.S_IXUSR),
-#     }
-#     return permissions
-#
-#
-# @app.post("/scan-directory")
-# async def scan_directory(request: DirectoryRequest):
-#     directory_path = request.directory_path
-#
-#     if not os.path.exists(directory_path):
-#         logger.error(f"Directory {directory_path} does not exist.")
-#         raise HTTPException(status_code=400, detail=f"Directory {directory_path} does not exist.")
-#
-#     if not os.path.isdir(directory_path):
-#         logger.error(f"{directory_path} is not a valid directory.")
-#         raise HTTPException(status_code=400, detail=f"{directory_path} is not a valid directory.")
-#
-#     try:
-#         files_and_dirs = os.listdir(directory_path)
-#     except PermissionError:
-#         logger.error(f"Permission denied to access directory {directory_path}.")
-#         raise HTTPException(status_code=403, detail="Permission denied to access this directory.")
-#
-#     results = []
-#     for item in files_and_dirs:
-#         item_path = os.path.join(directory_path, item)
-#         permissions = get_permissions(item_path)
-#         results.append({
-#             "name": item,
-#             "permissions": permissions
-#         })
-#
-#     logger.info(f"Scanned directory: {directory_path}")
-#     return {"directory": directory_path, "files_and_directories": results}
 
 
 # Endpoint to get the logs from the log file
